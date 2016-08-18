@@ -239,11 +239,13 @@ class Pending(Job):
 #Globals
 TERMWIDTH = 80
 PRINT_INDENT = '    ' #4 spaces, used for formatting.
+DEBUG_QUEUE_HOSTGROUP = '@dqcneh'
+GENERAL_ACCESS_QUEUE_HOSTGROUP = '@general_access'
 
 def main():
     """Main will parse through cmdline args, and give the result to the proper function. The debug
     queue is very simple to do on its own so it has its own function."""
-    global TERMWIDTH, PRINT_INDENT
+    global TERMWIDTH, PRINT_INDENT, DEBUG_QUEUE_HOSTGROUP, GENERAL_ACCESS_QUEUE_HOSTGROUP
     
     if len(sys.argv) < 2 or len(sys.argv) > 4:
         print("Error: Too few or too many arguments.")
@@ -263,6 +265,15 @@ def main():
             show_usage(24)
         else:
             process_user(sys.argv[2])
+    elif sys.argv[1] == '-uf':
+        if len(sys.argv) < 3 or len(sys.argv) > 4:
+            print('Error: Incorrect Arg usage.')
+            show_usage(20)
+        elif len(sys.argv) == 4:
+            if sys.argv[3] == '--details':
+                find_host_groups(sys.argv[2], True)
+        else:
+            find_host_groups(sys.argv[2], False)
     elif sys.argv[1] == '-U':
         if len(sys.argv) != 2:
             print("Error: Too many args, you can't use --details with -U!")
@@ -288,6 +299,73 @@ def main():
     process_host(desired_host)
     sys.exit()
 #^----------------------------------------------------------------------------- main()   
+ 
+def find_host_groups(user_name, detail_switch):
+    """Method to find the host groups that a given user belongs to. Username is passed in,
+    and method will send needed info to the respective printing functions depending if it is
+    a detailed print or not. Program exits after executing this method."""
+    
+    all_user_lists = subprocess.getoutput("qconf -sul").split('\n')
+    
+    user_list = []
+    for ul in all_user_lists:
+        u_list = subprocess.getoutput("qconf -su " + ul)
+        if u_list.find(user_name) != (-1):
+            user_list.append(ul)
+    #TAKE THIS OUT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    for l in user_list:
+        print(l)
+    
+    sq = subprocess.getoutput("qconf -sq long")
+    
+    sq = sq[sq.find('user_lists') + 9 :sq.find('xuser')]
+    sq = (((sq.replace('\n', '')).replace(' ', '')).replace('\\', '')).replace('],', '')
+    host_user_list = []
+    sq = sq.split('[')
+    hostg_list = []
+    for line in sq:
+        if line.find('@') != (-1):
+            hostg_list.append(line)
+    for line in hostg_list:
+        #line = line.split('=')
+        for ul in user_list:
+            if ul in line:
+                host_user_list.append(line.split('=')[0])
+    # Manually adding these, as they do not have user_lists associated with them (open to everyone) !!!
+    host_user_list.append(DEBUG_QUEUE_HOSTGROUP)
+    host_user_list.append(GENERAL_ACCESS_QUEUE_HOSTGROUP)
+    
+    if detail_switch:
+        print_duser_host(host_user_list, user_name, user_list)
+    for h in host_user_list:
+        print(h)
+    sys.exit()
+#^----------------------------------------------------------------------------- find_host_groups(user_name)
+
+def print_duser_host(host_list, user, ul):
+    """Method to print a detailed version of the hosts available to the specified user. This function will
+    print the 'qconf -shgrp_tree' of all of the hosts the user is able to use. That means the host along with what
+    nodes belongs to it will be displayed. 'ul' is the user_list, technically it is a list of user_lists in qconf's
+    terms."""
+    
+    header = ('Host group information pertaining to: {0}.\n' + '-'.center(TERMWIDTH, '-') + '\n' + \
+    'There are {1} different host groups available to {0}.').format(user, str(len(host_list)))
+    
+    if len(ul) == 0:
+        content = 'User {0} does not belong to any user-lists.'.format(user) + '\n'
+    else:
+        content = 'User-lists:'
+        for u in ul:
+            content += '\n{0}\n'.format(u)
+    content += '-'.center(TERMWIDTH, '-') + '\n'
+    
+    for host in host_list:
+        content += subprocess.getoutput('qconf -shgrp_tree ' + host ) + '\n'
+        
+    print(header)
+    print(content)
+    return
+#^----------------------------------------------------------------------------- print_duser_host(host_list, user, ul)
    
 def show_hosts():
     """Function that displays all available hosts and exists. Best to be piped through less etc."""
@@ -581,8 +659,7 @@ def print_short_user(job_list, pending_list, user_name):
         print('#'.center(TERMWIDTH, '#'))
         for job in user_pend:
             print(job)
-
-            
+      
     sys.exit()
 #^----------------------------------------------------------------------------- print_short_user(. . .)
 
