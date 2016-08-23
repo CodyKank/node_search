@@ -1,0 +1,103 @@
+.\" Manpage for uge_check.
+.\" Contact ckankel@nd.edu to correct typos or errors.
+.TH man 1 "23 Aug 2016" "1.0" "uge_check man page"
+.SH NAME
+uge_check \- get node or user information from Univa Grid Engine
+.SH SYNOPSIS
+.BR "uge_check.py " "[" "-h" ", " " --help" "] [" "-d" ", " " --debug" "] [" "-l" ", " " --long" "] [" "-H" ", " " --hosts" "] [" "-hostname" "] [" "-u" ", " " --user" " username] [" "-uf" " username] [" "-U" "] [" "-v, --visual" "]"
+.SH DESCRIPTION
+uge_check is a python 3 script which gathers information from the Univa Grid Engine and displays that information to stdout, which can then be redirected as desired. The following information can be obtained:
+." Next Paragraph
+.PP
+Queue/Host-group core usage, User Job information, which Host-groups a User belongs to, which Host-groups exist, which users are recognized by UGE currently.
+
+." BEGIN OPTIONS !!
+
+.SH OPTIONS
+.TP
+.BR "-h" ","  " --help" 
+Show a small help dialogue with a short description of each option and a few examples.
+
+." Next Option . . .
+.TP
+.BR "-d" ","  " --debug" 
+.RB "Display information pertaining to the Debug queue such as core usage (free cores, disabled cores, used cores) and node usage (free nodes, disabled nodes, used nodes). This option allows the optional "\
+ "--details" " flag or it can take the " "-v/--visual" " flag."
+
+." Next Option . . .
+.TP
+.BR "-l" "," " --long"
+.RB "Display information pertaining to the Long(General Access) queue such as core usage (free cores, disabled cores, used cores) and node usage (free nodes, disabled nodes, used nodes). This option allows the optional "\
+ "--details" " flag or it can take the " "-v/--visual" " flag."
+
+." Next Option . . .
+.TP
+.BR "-H" "," " --hosts"
+.RI "Shows all known hosts configured to be used by the Univa Grid Engine. " "Not all of the host-groups may be available to you, see " "-uf"
+
+." Next Option . . .
+.TP
+.B -[hostname]
+.RB "This option takes in a variable hostname, which can be found by using " "-H" ", and gives the same information found by using " "-d" " or " "-l" " i.e. core usage and node usage information can be found and displayed from that \
+specified hostname. Even if you cannot submit jobs to this specific host-group, you can still view this information. Don't get confused. " "NOTE:" " You do not need the '" "@" "' while specifying the hostname. (i.e. -corke not \
+-@corke) "
+
+." Next Option . . .
+.TP
+.BR "-u" "," " --user" " [username]"
+.RB "Display job information along with what node and core information pertaining to the specifed user after " "-u" " or " "--user" ". This option will take the optional flag "--details" " for a more detailed output. The detailed output\
+will display all of the jobs running on the nodes that the specified user has jobs running on. Since our nodes are a shared resource, it may be useful to see this if a job is running poorly."
+
+." Next Option . . .
+.TP
+.BR "-uf" " [username]"
+.RB "Show which host-groups and user-lists the specified user after " "-uf" " belongs to. The information displayed will indicate which host-groups the user has access to, i.e. which host-groups that user can submit jobs to using the \
+UGE. The user-list aspect of this option is not entirely useful, but those user-lists are what is used in conifguring qconf to tell the UGE which users belong to which host-groups.
+
+." Next Option . . .
+.TP
+.B -U
+.RB "Different from " "-u" ", " " -U" " will display all users currently interacting with the UGE. This means those users: have jobs running somewhere controlled by the UGE, are waiting in a queue controlled by the UGE, or recently \
+interacted with the UGE in some way. Thus, not every user who has access to the UGE will be displayed from this. Do not fret if your name is not on this list. 
+
+.SH OPTIONAL FLAGS
+
+.TP
+.BR "-v" ", " "--visual"
+.RB "Display a visual representation of a queue. In this visual representation, '[0]' represents an open core, '[#]' represents a disabled core, and [~] represents a used or taken core. This flag can be passed in after using "\
+ "uge_check.py -d, -l, " "or " "-[hostname]" ". See Examples below.
+
+." Next Option . . .
+.TP
+.B --details
+.RB "Show a more detailed output of whatever was passed in to " "uge_check" ". The result of " "--details" " depends on what it is modifying. If it is modifying the debug or long queues or a specifed host-group, then the output will \
+show all of the machines/nodes that belong to that queue or host-group. Each one of those nodes will also show its core  usage (used vs total). If " "--details" " is modifying a user, then all of the nodes that the user has jobs running on will be displayed, along with every other job running on that specific node. If the user has any pending jobs then those will be shown as well. If " "--details" " is modifying the " "-uf" " option, then it will display all of the \
+nodes which belong to the host-groups the specified user has access to. "
+
+." END OPTIONS !!
+
+.SH EXAMPLES
+
+.TP
+.B uge_check.py -l
+Display information pertaining to the long queue (general access)
+
+.TP
+.B uge_check.py --debug --details
+Display detailed information pertaining to the debug queue, this will yield information such as the name of all of the nodes currently occupying the debug queue and their core information.
+
+.TP
+.B uge_check.py -general_access -v
+Display a visual representation of the host-group '@general_access'. Notice how the '@' is not needed for the host-group.
+
+.TP
+.B uge_check.py -uf JohnDoe33 --details
+Display a detailed view of the host-groups that user JohnDoe33 belongs to. This will show each and every node that also belongs to those host-groups. It may be wise to pipe this output through something along the lines of less/more. \
+e.g. uge_check.py -uf JohnDoe33 --details | less
+
+ 
+.SH BUGS
+uge_check.py -uf fake_user \- will act as if it is a real user.
+Report any new findings to ckankel@nd.edu.
+.SH AUTHOR
+Cody Kankel (ckankel@nd.edu)

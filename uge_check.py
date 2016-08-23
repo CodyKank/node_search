@@ -308,16 +308,15 @@ def find_host_groups(user_name, detail_switch):
     all_user_lists = subprocess.getoutput("qconf -sul").split('\n')
     
     user_list = []
+    #Going through each element of all_user_lists and finding detailed output for that element
     for ul in all_user_lists:
         u_list = subprocess.getoutput("qconf -su " + ul)
         if u_list.find(user_name) != (-1):
             user_list.append(ul)
-    #TAKE THIS OUT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    for l in user_list:
-        print(l)
-    
+            
     sq = subprocess.getoutput("qconf -sq long")
     
+    #splicing the sq output up to the user_list point, we don't need the rest of the garbarge before that
     sq = sq[sq.find('user_lists') + 9 :sq.find('xuser')]
     sq = (((sq.replace('\n', '')).replace(' ', '')).replace('\\', '')).replace('],', '')
     host_user_list = []
@@ -325,9 +324,9 @@ def find_host_groups(user_name, detail_switch):
     hostg_list = []
     for line in sq:
         if line.find('@') != (-1):
+            #host-groups in sq output have '@', so that's what we're looking for
             hostg_list.append(line)
     for line in hostg_list:
-        #line = line.split('=')
         for ul in user_list:
             if ul in line:
                 host_user_list.append(line.split('=')[0])
@@ -337,10 +336,31 @@ def find_host_groups(user_name, detail_switch):
     
     if detail_switch:
         print_duser_host(host_user_list, user_name, user_list)
-    for h in host_user_list:
-        print(h)
+    else:
+        print_user_host(host_user_list, user_name, user_list)
     sys.exit()
 #^----------------------------------------------------------------------------- find_host_groups(user_name)
+
+def print_user_host(host_list, user, ul):
+    """Method to print a non-detailed version of the host groups and user-lists a specifed user
+    belongs to and is able to use. ul represents a list of the user-list, host_list is a list of the host groups,
+    and user would be the username of the specifed user as a string."""
+    
+    print('\nHost-group info pertaining to {0}:'.format(user))
+    print('-'.center(80, '-'))
+    if len(ul) == 0:
+        print('User is not a member of any user-lists.')
+    else:
+        print('User belongs to the following user-lists:')
+        for u in ul:
+            print(u)
+        print()
+    print('User has access to the following host-groups:')
+    for hg in host_list:
+        print(hg)
+    print('-'.center(80, '-') + '\n')
+    return
+#^----------------------------------------------------------------------------- print_user_host(host_list, user, ul)
 
 def print_duser_host(host_list, user, ul):
     """Method to print a detailed version of the hosts available to the specified user. This function will
@@ -675,7 +695,8 @@ def show_usage(exit_code):
     print("  -l, --long".ljust(int(TERMWIDTH/2)) + "show information from the long queue.".ljust(int(TERMWIDTH/2)))
     print("  -H, --hosts".ljust(int(TERMWIDTH/2)) + "show all available hosts(you may not have access to all hosts)".ljust(int(TERMWIDTH/2)))
     print("  -[hostname]".ljust(int(TERMWIDTH/2)) + "show information on specific host, the '@' is not required.".ljust(int(TERMWIDTH/2)))
-    print("  -u, --user [user_name]".ljust(int(TERMWIDTH/2)) + "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
+    print("  -u, --user [user_name] ".ljust(int(TERMWIDTH/2)) + "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
+    print("  -uf, [user_name]".ljust(int(TERMWIDTH/2)) + "show which host groups are available to specified user.".ljust(int(TERMWIDTH/2)))
     print("  -U".ljust(int(TERMWIDTH/2)) + "show a list of all users currently recognized by the Univa Grid Engine.".ljust(int(TERMWIDTH/2)))
     print("Optional arguments:".ljust(int(TERMWIDTH/2)))
     print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a user or a hostname to specify a detailed output.".ljust(int(TERMWIDTH/2)))
@@ -685,6 +706,7 @@ def show_usage(exit_code):
     print('  {0} -l'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[--long] could also be used'.rjust(int(TERMWIDTH/2)))
     print('  {0} --long --details'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[-l] could also be used'.rjust(int(TERMWIDTH/2)))
     print('  {0} -u johndoe33 --details'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
+    print('  {0} -uf johndoe33 --details'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
     print('  {0} -corke'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)))
     print('  {0} -l --visual'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[-v] could also be used.'.rjust(int(TERMWIDTH/2)) + '\n')
     print("Hint: Sometimes it's better to pipe through less.")
