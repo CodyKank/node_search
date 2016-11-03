@@ -1,18 +1,20 @@
-                                 _               _                  
-        _   _  __ _  ___     ___| |__   ___  ___| | __  _ __  _   _ 
-       | | | |/ _` |/ _ \   / __| '_ \ / _ \/ __| |/ / | '_ \| | | |
-       | |_| | (_| |  __/  | (__| | | |  __/ (__|   < _| |_) | |_| |
-        \__,_|\__, |\___|___\___|_| |_|\___|\___|_|\_(_) .__/ \__, |
-              |___/    |_____|                         |_|    |___/ 
+                   _                                     _                   
+                  | |                                   | |                  
+   _ __   ___   __| | ___ ______ ___  ___  __ _ _ __ ___| |__    _ __  _   _ 
+  | '_ \ / _ \ / _` |/ _ \______/ __|/ _ \/ _` | '__/ __| '_ \  | '_ \| | | |
+  | | | | (_) | (_| |  __/      \__ \  __/ (_| | | | (__| | | |_| |_) | |_| |
+  |_| |_|\___/ \__,_|\___|      |___/\___|\__,_|_|  \___|_| |_(_) .__/ \__, |
+                                                                | |     __/ |
+                                                                |_|    |___/ 
 -------------------------------------------------------------------------------
-* uge_check.py started in late July/Early August 2016 by intern Cody Kankel for
+* node-search.py started in late July/Early August 2016 by intern Cody Kankel for
   Notre Dame CRC.
 
-* uge_check.py is a utility script, which can be seen as a swiss-army knife
+* node-search.py is a utility script, which can be seen as a swiss-army knife
   type of program for finding relevant information for the Univa Grid Engine.
 
 * How Does it work:
-    uge_check.py is a python 3 script, which is placed in the afs space
+    node-search.py is a python 3 script, which is placed in the afs space
     currently, and it uses the subprocess module to spawn new subprocesses
     which are usually running qstat or qconf and gather their output back into
     the python script which will then parse that output depending on what its
@@ -22,7 +24,7 @@
 
 * There is a manpage included in the git repo, which should explain in greater
   detail how the script works. To view it from within this dir, type: 
-      man ./uge_check.
+      man ./node-search.1
   You can also add it to your own manpages if you'd like.
 
 * If you are not a member of Notre Dame and are using the UGE and want to use
@@ -32,6 +34,15 @@
   have to do is change around the names of the Long/Debug queues in the python
   script to what your needs are.
 
+* node-search.py will search through information gathered from qstat about the
+  UGE environment, including information about nodes, users, user-lists, host-
+  groups, and it can even give a visualization of a host-group.
+
 * This script is assuming (1) Python 3 is installed, tested with python 3.4.0,
   (2) the subprocess module is installed [should be by default], and (3) you
   have qconf and qstat working and configured.
+
+* To do: Change long documentation to specify that it is the long queue in ONLY
+  the general_access hostgroup.
+  Make pending_jobs OO. 
+  Test with new hardware (Nov '16)
