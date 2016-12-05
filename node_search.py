@@ -7,7 +7,7 @@ the subprocess module to execute bash(tcsh) commands and gather their output. Ba
 swiss army knife parsing tool. Currently works with python 3.4.0. Created July 2016.
 Issues or bugs contact: ckankel@nd.edu
 Purposely used exit codes:
-    0 = clean run, proper execution
+    0 = clean run, proper execution (mostly here for testings sake)
     20 = too few or many args
     21 = used -h option
     22 = incorrect hostname
@@ -52,6 +52,40 @@ class Node:
     def get_load(self):
         """Method to obtain the sys-load info of a node. Returns a str"""
         return str(self.load)
+    
+    def get_total_mem(self):
+        """Returns the total amount of memory a node contains as a STRING"""
+        return self.total_mem
+    
+    def get_used_mem(self):
+        """Returns the amount of memory(RAM) a node currently is using as a STRING"""
+        return self.used_mem
+    
+    def get_free_mem(self):
+        """Returns the amount of free RAM a node currently is using as a STRING"""
+        return self.free_mem
+    
+    def set_total_mem(self, mem):
+        """Method which sets the total memory (RAM) that this certain node has, which is found using qstat -F
+        and parsing the node. The amount of total_mem will be stored as an string."""
+        self.total_mem = mem
+        return
+    
+    def set_used_mem(self, u_mem):
+        """Method to set the amount of used memory (RAM) in a certain node. This info is found by parsing qstat -F.
+        The amount of used_mem will be stored as an string."""
+        self.used_mem = u_mem
+        return
+    
+    def set_free_mem(self, default=0):
+        """Method which sets the amount of free memory. If no amount of memory is specified, the funciton will calculate
+        the free memory from the self.total_mem - self.used_mem. Thus, it is important to set those first. If an amount of
+        memory is speified, that will be stored instead. self.free_mem is set as an string."""
+        if default == 0:
+            self.free_mem = (int(self.total_mem) - int(self.used_mem))
+        else:
+            self.free_mem = default
+        return
     
     def get_num_jobs(self):
         """Method to obtain the number of jobs a node currently has running on it. Returns a str"""
@@ -163,6 +197,7 @@ class Job:
         self.user = str(user)
         self.priority = 0
         self.id = 0
+        self.max_mem = 'NA'
         return
         
     def __repr__(self):
@@ -200,8 +235,22 @@ class Job:
         """Method to get job id of a job"""
         return self.id
     
+    def find_max_mem(self):
+        """Function that will find this job's maximum used memory (RAM) by parsing
+        through qstat -j <job_id>. The function will set this Job object's max_mem
+        variable."""
+        qstat = subprocess.getoutput("qstat -j {0}".format(self.id))
+        qstat = qstat[qstat.find("maxvmem=") + 8 :]
+        self.max_mem = qstat[:qstat.find('\n')]
+    
+    def get_max_mem(self):
+        """Function to return a STRING of the maximum memory a job as used thus far detected
+        by the grid engine."""
+        return str(self.max_mem)
+    
     def set_id(self, job_id):
         self.id = job_id
+        self.find_max_mem()
         return
 #^--------------------------------------------------------- class Job
 
@@ -241,6 +290,7 @@ TERMWIDTH = 80
 PRINT_INDENT = '    ' #4 spaces, used for formatting.
 DEBUG_QUEUE_HOSTGROUP = '@dqcneh'
 GENERAL_ACCESS_QUEUE_HOSTGROUP = '@general_access'
+SCRIPT_NAME = 'node_search.py' # this is used in show_usage() function
 
 def main():
     """Main will parse through cmdline args, and give the result to the proper function. The debug
@@ -567,7 +617,7 @@ def process_user(user_name):
         print('Error: User, ' + user_name + ' is currently not logged on or does not exist.')
         sys.exit(25)
     
-    qstat = subprocess.getoutput("qstat -f").split('-'.center(81, '-')) #81 -'s
+    qstat = subprocess.getoutput("qstat -F").split('-'.center(81, '-')) #81 -'s
     
     node_list = []
     pending_jobs = ''
@@ -581,13 +631,56 @@ def process_user(user_name):
                 node_list.append(node)
     
     final_list = []
-    for node in node_list:
+    
+    for host in node_list:
+        temp_node = Node((host.split()[0]))
+        host_used_cores = host.split()[2].split('/')[1]
+        host_total_cores = host.split()[2].split('/')[2]
+        # If within the first line of the node there is a 'd' at the end, disable it
+        if len(host.split('\n')[0]) == 6 and host.split()[5] == 'd':
+            temp_node.set_disabled_switch(True)
+            disabled_cores += int(host_total_cores)
+        else:    
+            temp_node.set_disabled_switch(False)
+            
+        temp_node.set_cores(host_total_cores, host_used_cores)
+        # Reaping the info we want from qstat -F divided up by lines with each node.
+        # so [25] is line 25 down from the start of that node which contains total_mem
+        total_mem = host.split('\n')[25]
+        total_mem = total_mem[total_mem.find('=') +1 :]
+        used_mem = host.split('\n')[26]
+        used_mem = used_mem[used_mem.find('=') +1 :]
+        free_mem = host.split('\n')[27]
+        free_mem = free_mem[free_mem.find('=') + 1 :]
+        temp_node.set_total_mem(total_mem)
+        temp_node.set_used_mem(used_mem)
+        temp_node.set_free_mem(free_mem)
+        
+        # In qstat -F, qf:min_cpu . . . . is the last item before the jobs are listed, 28 is how many char's that string is (don't want it)
+        node_stat= host[host.find('qf:min_cpu_interval=00:05:00') + 28\
+                             :host.find('\n---------------------------------------------------------------------------------\n')]
+        # There is always an extra '\n' in here, so subtract 1 to get rid of it
+        num_jobs = len(node_stat.split('\n')) -1
+        # If there are any jobs, parse them and gather info
+        if num_jobs > 0:
+            # Python is non-inclusive for the right operand, and we want to skip another extra '\n' so start at 1, and want to go num_jobs
+            for i in range(1, num_jobs + 1):
+                info = node_stat.split('\n')[i].split()
+                temp_job = Job(info[2], info[3], info[7])
+                temp_job.set_id(info[0])
+                temp_job.set_priority(info[1])
+                temp_node.add_job(temp_job)
+        
+        final_list.append(temp_node)
+    
+    
+    """for node in node_list:
         lines = node.split('\n')
         temp_str = lines[1] #Keeping node
         for i in range(2, len(lines)):
             if lines[i].find(user_name) != (-1):
                 temp_str += '\n'+ str(lines[i])      
-        final_list.append(temp_str)
+        final_list.append(temp_str)"""
     
     pending_list = []
     if len(pending_jobs): #As long as the user has pending jobs T if len != 0
@@ -627,13 +720,12 @@ def print_detailed_user(node_list, pending_list, user_name):
     sys.exit()
 #^----------------------------------------------------------------------------- print_detailed_user(. . .)
 
-def print_short_user(job_list, pending_list, user_name):
+def print_short_user(node_list, pending_list, user_name):
     """Prints a short version of the user details: the node the user is running on with their jobs, and the
     user's pending jobs (if any)."""
     
     # Processing info to be printed in short version. Creating dict with all needed info
-    printing_list = []
-    for node in job_list:
+    """for node in job_list:
         temp_dict = {}
         split_node = node.split('\n')
         temp_dict['node'] = (split_node[0]).split()[0]
@@ -643,35 +735,38 @@ def print_short_user(job_list, pending_list, user_name):
         for i in range(1, len(split_node)):
             temp_list.append(split_node[i])
         temp_dict['jobs'] = temp_list
-        printing_list.append(temp_dict)
+        printing_list.append(temp_dict)"""
     user_pend = []
     if len(pending_list):    
         for j in range(3, len(pending_list)):
             user_pend.append(pending_list[j])
 
     job_count = 0
-    for item in printing_list:
-        job_count += len(item['jobs'])
+    #for item in printing_list:
+    #   job_count += len(item['jobs'])
         
     print('Job information for {0}.{1}Total Jobs: {2}'.format(user_name, PRINT_INDENT, job_count))
     #using dicts just created for printing. Ugly code but decent results.  
-    for node in printing_list:
+    for node in node_list:
         print()
         print('Node name'.ljust(int(TERMWIDTH/2)) + 'Used Cores'.rjust(int(TERMWIDTH/4)) +
               '  Total Cores'.ljust(int(TERMWIDTH/4)))
         print('-'.center(int(TERMWIDTH), '-')) #Creating line of separation
-        print(node['node'].ljust(int(TERMWIDTH/2)) +
-              ((node['cores'].replace('/', ' ')).split()[1]).rjust(int(TERMWIDTH/4))
-              + '  ' + ((node['cores'].replace('/', ' ')).split()[2]).ljust(int(TERMWIDTH/4)))
+        print(node.get_name().ljust(int(TERMWIDTH/2)) +
+              ((str(node.get_used())).rjust(int(TERMWIDTH/4)))
+              + '  ' + (str(node.get_total())).ljust(int(TERMWIDTH/4)))
         #print('_'.center(TERMWIDTH, '_'))
-        print('Jobs on node: ' + str(len(node['jobs'])))
+        print('Jobs on node: ' + str(node.get_num_jobs()))
         
         print('{0}Job ID'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
               + '{0}Job Name'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
-              + '{0}Num Cores'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4)))
-        for job in node['jobs']:
-            print(PRINT_INDENT + job.split()[0].ljust(int(TERMWIDTH/4)) + PRINT_INDENT
-                  + job.split()[2].ljust(int(TERMWIDTH/4)) + PRINT_INDENT +job.split()[7].ljust(int(TERMWIDTH/4)))
+              + '{0}Num Cores'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
+              + '{0}MAX Memory Used'.format(PRINT_INDENT))
+        for job in node.get_job_list():
+            if user_name in job.get_user():
+                print(PRINT_INDENT + str(job.get_id()).ljust(int(TERMWIDTH/4)) + PRINT_INDENT \
+                    + job.get_name().ljust(int(TERMWIDTH/4)) + PRINT_INDENT +str(job.get_core_info()).ljust(int(TERMWIDTH/4))\
+                    + PRINT_INDENT + job.get_max_mem().ljust(int(TERMWIDTH/4)))
         
     if len(user_pend):
         print('\n' + '#'.center(TERMWIDTH, '#'))
@@ -687,7 +782,7 @@ def show_usage(exit_code):
     '''Prints usage info, will exit with the corresponding exit code given. See top of script (ln 8).
     Breaks formatting of easily viewing from 118 col terminal, sorry.'''
     
-    print("usage: " + str(sys.argv[0]) + " [flag] [optional argument]")
+    print("usage: " + str(SCRIPT_NAME) + " [flag] [optional argument]")
     print("Display node information from the Grid Engine".center(80))
     print('Flags:')
     print("  -h, --help".ljust(int(TERMWIDTH/2)) + "show this message and exit.".ljust(int(TERMWIDTH/2)))
@@ -702,15 +797,15 @@ def show_usage(exit_code):
     print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a user or a hostname to specify a detailed output.".ljust(int(TERMWIDTH/2)))
     print("  -v, --visual".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a host name for a visual queue.".ljust(int(TERMWIDTH/2)) + '\n')
     print('Examples:')
-    print('  {0} -d'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[--debug] could also be used'.rjust(int(TERMWIDTH/2)))
-    print('  {0} -l'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[--long] could also be used'.rjust(int(TERMWIDTH/2)))
-    print('  {0} --long --details'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[-l] could also be used'.rjust(int(TERMWIDTH/2)))
-    print('  {0} -u johndoe33 --details'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
-    print('  {0} -uf johndoe33 --details'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
-    print('  {0} -corke'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)))
-    print('  {0} -l --visual'.format(str(sys.argv[0])).ljust(int(TERMWIDTH/2)) + '[-v] could also be used.'.rjust(int(TERMWIDTH/2)) + '\n')
+    print('  {0} -d'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--debug] could also be used'.rjust(int(TERMWIDTH/2)))
+    print('  {0} -l'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--long] could also be used'.rjust(int(TERMWIDTH/2)))
+    print('  {0} --long --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-l] could also be used'.rjust(int(TERMWIDTH/2)))
+    print('  {0} -u johndoe33 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
+    print('  {0} -uf johndoe33 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
+    print('  {0} -corke'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)))
+    print('  {0} -l --visual'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-v] could also be used.'.rjust(int(TERMWIDTH/2)) + '\n')
     print("Hint: Sometimes it's better to pipe through less.")
-    print("{0} [-flags] | less".format(sys.argv[0]).center(int(TERMWIDTH)))
+    print("{0} [-flags] | less".format(SCRIPT_NAME).center(int(TERMWIDTH)))
 
     sys.exit(exit_code) 
 #^----------------------------------------------------------------------------- show_usage(exit_code)    

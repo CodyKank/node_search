@@ -27,6 +27,13 @@
       man ./node-search.1
   You can also add it to your own manpages if you'd like.
 
+* The node_search.sh script allows node-search to be ran without loading the
+  Python 3 module. By default, there are no module loaded and it would be a 
+  pain to have to load the python 3 module everytime you wanted check the 
+  status of a job, so this bash script sets up the environment temporarily
+  to run Python 3 scripts. The only configuration needed with this is to
+  properly specifiy the full path for the actual python 3 script.
+
 * If you are not a member of Notre Dame and are using the UGE and want to use
   this, you may need to play around with trial and error, as there may be 
   ND specific items sprinkled around in the code. As far as I can tell, if you
@@ -42,7 +49,7 @@
   (2) the subprocess module is installed [should be by default], and (3) you
   have qconf and qstat working and configured.
 
-* To do: Change long documentation to specify that it is the long queue in ONLY
-  the general_access hostgroup.
+* To do:
+  Clean up formatting on -u --details options.
   Make pending_jobs OO. 
-  Test with new hardware (Nov '16)
+  Test with new hardware (Dec/Jan '16)
