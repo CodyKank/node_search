@@ -7,7 +7,7 @@ the subprocess module to execute bash(tcsh) commands and gather their output. Ba
 swiss army knife parsing tool. Currently works with python 3.4.0. Created July 2016.
 Issues or bugs contact: ckankel@nd.edu
 Purposely used exit codes:
-    0 = clean run, proper execution (mostly here for testings sake)
+    0 = clean run, proper execution
     20 = too few or many args
     21 = used -h option
     22 = incorrect hostname
@@ -290,7 +290,7 @@ TERMWIDTH = 80
 PRINT_INDENT = '    ' #4 spaces, used for formatting.
 DEBUG_QUEUE_HOSTGROUP = '@dqcneh'
 GENERAL_ACCESS_QUEUE_HOSTGROUP = '@general_access'
-SCRIPT_NAME = 'node_search.py' # this is used in show_usage() function
+SCRIPT_NAME = 'node_search.sh'
 
 def main():
     """Main will parse through cmdline args, and give the result to the proper function. The debug
@@ -315,6 +315,12 @@ def main():
             show_usage(24)
         else:
             process_user(sys.argv[2])
+    elif (sys.argv[1] == '-a' or sys.argv[1] == '--all'):
+        if len(sys.argv) != 2:
+            print('Argument Error. To see info on every host group just type "node_search.sh --all" or use "-a".')
+            show_usage(23)
+        else:
+            show_everything()
     elif sys.argv[1] == '-uf':
         if len(sys.argv) < 3 or len(sys.argv) > 4:
             print('Error: Incorrect Arg usage.')
@@ -633,6 +639,7 @@ def process_user(user_name):
     final_list = []
     
     for host in node_list:
+        # Grabbing the node's name in qstat and making a Node() instance of it
         temp_node = Node((host.split()[0]))
         host_used_cores = host.split()[2].split('/')[1]
         host_total_cores = host.split()[2].split('/')[2]
@@ -672,15 +679,6 @@ def process_user(user_name):
                 temp_node.add_job(temp_job)
         
         final_list.append(temp_node)
-    
-    
-    """for node in node_list:
-        lines = node.split('\n')
-        temp_str = lines[1] #Keeping node
-        for i in range(2, len(lines)):
-            if lines[i].find(user_name) != (-1):
-                temp_str += '\n'+ str(lines[i])      
-        final_list.append(temp_str)"""
     
     pending_list = []
     if len(pending_jobs): #As long as the user has pending jobs T if len != 0
@@ -724,28 +722,13 @@ def print_short_user(node_list, pending_list, user_name):
     """Prints a short version of the user details: the node the user is running on with their jobs, and the
     user's pending jobs (if any)."""
     
-    # Processing info to be printed in short version. Creating dict with all needed info
-    """for node in job_list:
-        temp_dict = {}
-        split_node = node.split('\n')
-        temp_dict['node'] = (split_node[0]).split()[0]
-        temp_dict['cores'] = (split_node[0]).split()[2]
-        temp_dict['user'] = user_name
-        temp_list = []
-        for i in range(1, len(split_node)):
-            temp_list.append(split_node[i])
-        temp_dict['jobs'] = temp_list
-        printing_list.append(temp_dict)"""
     user_pend = []
     if len(pending_list):    
         for j in range(3, len(pending_list)):
             user_pend.append(pending_list[j])
 
     job_count = 0
-    #for item in printing_list:
-    #   job_count += len(item['jobs'])
-        
-    print('Job information for {0}.{1}Total Jobs: {2}'.format(user_name, PRINT_INDENT, job_count))
+    print('Job information for {0}.'.format(user_name))
     #using dicts just created for printing. Ugly code but decent results.  
     for node in node_list:
         print()
@@ -756,17 +739,21 @@ def print_short_user(node_list, pending_list, user_name):
               ((str(node.get_used())).rjust(int(TERMWIDTH/4)))
               + '  ' + (str(node.get_total())).ljust(int(TERMWIDTH/4)))
         #print('_'.center(TERMWIDTH, '_'))
-        print('Jobs on node: ' + str(node.get_num_jobs()))
         
         print('{0}Job ID'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
               + '{0}Job Name'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
               + '{0}Num Cores'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
               + '{0}MAX Memory Used'.format(PRINT_INDENT))
         for job in node.get_job_list():
+            this_nodeJobs = 0
             if user_name in job.get_user():
                 print(PRINT_INDENT + str(job.get_id()).ljust(int(TERMWIDTH/4)) + PRINT_INDENT \
                     + job.get_name().ljust(int(TERMWIDTH/4)) + PRINT_INDENT +str(job.get_core_info()).ljust(int(TERMWIDTH/4))\
-                    + PRINT_INDENT + job.get_max_mem().ljust(int(TERMWIDTH/4)))
+                    + job.get_max_mem().ljust(int(TERMWIDTH/4)))
+                job_count += 1
+                this_nodeJobs += 1
+                print('User Jobs on node: ' + str(this_nodeJobs))
+    print("----\n{0}'s Total Running Jobs: {1}\n".format(user_name, str(job_count)))
         
     if len(user_pend):
         print('\n' + '#'.center(TERMWIDTH, '#'))
@@ -782,12 +769,12 @@ def show_usage(exit_code):
     '''Prints usage info, will exit with the corresponding exit code given. See top of script (ln 8).
     Breaks formatting of easily viewing from 118 col terminal, sorry.'''
     
-    print("usage: " + str(SCRIPT_NAME) + " [flag] [optional argument]")
+    print("usage: " + SCRIPT_NAME + " [flag] [optional argument]")
     print("Display node information from the Grid Engine".center(80))
     print('Flags:')
     print("  -h, --help".ljust(int(TERMWIDTH/2)) + "show this message and exit.".ljust(int(TERMWIDTH/2)))
     print("  -d, --debug".ljust(int(TERMWIDTH/2)) + "show information from the debug queue.".ljust(int(TERMWIDTH/2)))
-    print("  -l, --long".ljust(int(TERMWIDTH/2)) + "show information from the long queue.".ljust(int(TERMWIDTH/2)))
+    print("  -l, --long".ljust(int(TERMWIDTH/2)) + "show information from the general_access queue.".ljust(int(TERMWIDTH/2)))
     print("  -H, --hosts".ljust(int(TERMWIDTH/2)) + "show all available hosts(you may not have access to all hosts)".ljust(int(TERMWIDTH/2)))
     print("  -[hostname]".ljust(int(TERMWIDTH/2)) + "show information on specific host, the '@' is not required.".ljust(int(TERMWIDTH/2)))
     print("  -u, --user [user_name] ".ljust(int(TERMWIDTH/2)) + "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
@@ -809,7 +796,18 @@ def show_usage(exit_code):
 
     sys.exit(exit_code) 
 #^----------------------------------------------------------------------------- show_usage(exit_code)    
+
+def show_everything():
+    """Function which will display information on all host groups summed up into a format similiar to the format
+    of viewing a single host-group/queue. This function will most likely take a very long time..."""
     
+    #print("WARNING: This may take awhile. . .\n")
+    # Need to find all hostgroups, and make sure there are no deuplicate machines in this calculation.
+    print("This feature is still under construction. Check back soon!")
+    sys.exit(0)
+#^----------------------------------------------------------------------------- show_everything()    
+    
+
 # Standard boilerplate to call the main() function.
 if __name__ == '__main__':
   main()

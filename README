@@ -51,5 +51,7 @@
 
 * To do:
   Clean up formatting on -u --details options.
+  Add jobs to Host groups --details output
   Make pending_jobs OO. 
+  Make --all feature to display info from all hostgroups. Be careful of duplicate nodes.
   Test with new hardware (Dec/Jan '16)
