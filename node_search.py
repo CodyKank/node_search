@@ -288,8 +288,8 @@ class Pending(Job):
 #Globals
 TERMWIDTH = 80
 PRINT_INDENT = '    ' #4 spaces, used for formatting.
-DEBUG_QUEUE_HOSTGROUP = '@dqcneh'
-GENERAL_ACCESS_QUEUE_HOSTGROUP = '@general_access'
+DEBUG_QUEUE_HOSTGROUP = 'debug_d12chas'
+GENERAL_ACCESS_QUEUE_HOSTGROUP = 'general_access'
 SCRIPT_NAME = 'node_search.sh'
 
 def main():
@@ -300,10 +300,11 @@ def main():
     if len(sys.argv) < 2 or len(sys.argv) > 4:
         print("Error: Too few or too many arguments.")
         show_usage(20)
+    
     if (sys.argv[1] == '-d' or sys.argv[1] == '--debug'):
-        desired_host = 'debug'
-    elif (sys.argv[1] == '-l' or sys.argv[1] == '--long'):
-        desired_host = 'general_access'
+        desired_host = DEBUG_QUEUE_HOSTGROUP
+    elif (sys.argv[1] == '-g' or sys.argv[1] == '--general_access'):
+        desired_host = GENERAL_ACCESS_QUEUE_HOSTGROUP
     elif (sys.argv[1] == '-h' or sys.argv[1] == '--help'):
         show_usage(21)
     elif (sys.argv[1] == '-Mordor' or sys.argv[1] == '--Mordor'):
@@ -319,8 +320,7 @@ def main():
         if len(sys.argv) != 2:
             print('Argument Error. To see info on every host group just type "node_search.sh --all" or use "-a".')
             show_usage(23)
-        else:
-            show_everything()
+        desired_host = "all"
     elif sys.argv[1] == '-uf':
         if len(sys.argv) < 3 or len(sys.argv) > 4:
             print('Error: Incorrect Arg usage.')
@@ -339,6 +339,9 @@ def main():
     elif '-' not in sys.argv[1]:
         print("Error: Incorrect arg ussage")
         show_usage(23)
+    elif sys.argv[1] == "-all":
+        print("Did you mean, '--all'?")
+        show_usage(20)
     elif (sys.argv[1] == '-H' or sys.argv[1] == '--hosts'):
         if len(sys.argv) > 2:
             print("Error: Too many args, you can't use --details with -H!")
@@ -348,11 +351,15 @@ def main():
         desired_host = str(sys.argv[1][1:]) #getting rid of '-'
     
     valid_hosts = (subprocess.getoutput("qconf -shgrpl").split())
-    if ('@' + str(desired_host)) not in valid_hosts: #need a '@' for host list
-        print("Error: Incorrect/bad hostname")
-        show_usage(22)
-        
-    process_host(desired_host)
+
+    if desired_host == DEBUG_QUEUE_HOSTGROUP or desired_host == GENERAL_ACCESS_QUEUE_HOSTGROUP or \
+       desired_host == "all":
+        process_host(desired_host)
+    else:
+        if ('@' + str(desired_host)) not in valid_hosts: #need a '@' for host list
+            print("Error: Incorrect/bad hostname")
+            show_usage(22)
+        process_host(desired_host)
     sys.exit()
 #^----------------------------------------------------------------------------- main()   
  
@@ -457,16 +464,16 @@ def process_host(desired_host):
     
     node_list = []
     host_info_list = []    
-    if desired_host == 'debug':
-        host_info_list = (subprocess.getoutput("qstat -f | grep debug@")).split('\n')
+    if desired_host == "all":
+        desired_host_list = getAllMachines()
     else:
         desired_host_list = (subprocess.getoutput("qconf -shgrp_resolved " + '@' + str(desired_host))).split()
-        qstat = subprocess.getoutput('qstat -f')
-        for host in desired_host_list:
-            if qstat.find(host) != (-1):
-                #Searches the long string for the index of the occurance of the specified host, then
-                #parses it the string for just that one line with the host that we want.
-                host_info_list.append((qstat[qstat.find(host):].split('\n'))[0])
+    qstat = subprocess.getoutput('qstat -f')
+    for host in desired_host_list:
+        if qstat.find(host) != (-1):
+            #Searches the long string for the index of the occurance of the specified host, then
+            #parses it the string for just that one line with the host that we want.
+            host_info_list.append((qstat[qstat.find(host):].split('\n'))[0])
     #Start at with everything at 0, and will count up as encountered.
     total_nodes = 0
     total_cores = 0
@@ -481,9 +488,11 @@ def process_host(desired_host):
         cores = host.split()[2].replace('/', ' ').split()
         host_used_cores = cores[1]
         host_total_cores = cores[2]
-        if len(host.split()) == 6 and host.split()[5] == 'd':
+        if len(host.split()) == 6 and (host.split()[5] == 'd' or host.split()[5] == 'E' or \
+               host.split()[5] == 'au' or host.split()[5] == 'Eau' or host.split()[5] == 'Eqw'):
             temp_node.set_disabled_switch(True)
             disabled_cores += int(host_total_cores)
+            total_cores += int(host_total_cores)
             disabled_nodes += 1
         else:    
             temp_node.set_disabled_switch(False)
@@ -498,9 +507,11 @@ def process_host(desired_host):
     
     if len(sys.argv) == 3:
         if sys.argv[2] == '--details':
-            print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desired_host, disabled_cores, disabled_nodes, node_list)
+            print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desired_host, 
+                                disabled_cores, disabled_nodes, node_list)
         elif sys.argv[2] == '-v' or sys.argv[2] == '--visual':
-            draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, disabled_cores, disabled_nodes, node_list, free_cores)
+            draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, disabled_cores, 
+                       disabled_nodes, node_list, free_cores)
         else:
             print('Error: Arg syntax error with: ' + sys.argv[2])
             show_usage(23)
@@ -511,6 +522,17 @@ def process_host(desired_host):
         show_usage(23)
     return
 #^----------------------------------------------------------------------------- process_host(desired_host)    
+
+def getAllMachines():
+    """Function to get all of the machines UGE can find and return a list of them as strings."""
+    validHosts = (subprocess.getoutput("qconf -shgrpl").split())
+    machineList = []
+    for host in validHosts:
+        hostMachineList = ((subprocess.getoutput("qconf -shgrp_resolved " + str(host))).split())
+        for machine in hostMachineList:
+            machineList.append(machine)
+    return machineList
+#^----------------------------------------------------------------------------- getAllMachines()
 
 def draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, disabled_cores, disabled_nodes, node_list, free_cores):
     """Method to draw the queue on the screen. Will use '[]' to represent a core."""
@@ -597,11 +619,11 @@ def print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_h
     print('Total Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores).ljust(int(TERMWIDTH/2)))
     print('Used Cores:'.ljust(int(TERMWIDTH/2)) + str(used_cores).ljust(int(TERMWIDTH/2)))
     print('Free Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores - used_cores).ljust(int(TERMWIDTH/2)))
-    print('Disabled Cores:'.ljust(int(TERMWIDTH/2)) + str(disabled_cores).ljust(int(TERMWIDTH/2)))
+    print('Disabed/Error Cores:'.ljust(int(TERMWIDTH/2)) + str(disabled_cores).ljust(int(TERMWIDTH/2)))
     print("")
     print('Total Nodes:'.ljust(int(TERMWIDTH/2)) + str(total_nodes).ljust(int(TERMWIDTH/2)))
     print('Used Nodes:'.ljust(int(TERMWIDTH/2)) + str(total_nodes - empty_nodes).ljust(int(TERMWIDTH/2)))
-    print('Disabled Nodes:'.ljust(int(TERMWIDTH/2)) + str(disabled_nodes).ljust(int(TERMWIDTH/2)))
+    print('Disabled/Error Nodes:'.ljust(int(TERMWIDTH/2)) + str(disabled_nodes).ljust(int(TERMWIDTH/2)))
     print('Empty Nodes:'.ljust(int(TERMWIDTH/2)) + str(empty_nodes).ljust(int(TERMWIDTH/2)))
     return
 #^----------------------------------------------------------------------------- print_host_info(. . .)
@@ -774,7 +796,7 @@ def show_usage(exit_code):
     print('Flags:')
     print("  -h, --help".ljust(int(TERMWIDTH/2)) + "show this message and exit.".ljust(int(TERMWIDTH/2)))
     print("  -d, --debug".ljust(int(TERMWIDTH/2)) + "show information from the debug queue.".ljust(int(TERMWIDTH/2)))
-    print("  -l, --long".ljust(int(TERMWIDTH/2)) + "show information from the general_access queue.".ljust(int(TERMWIDTH/2)))
+    print("  -g, --general-access".ljust(int(TERMWIDTH/2)) + "show information from the general_access queue.".ljust(int(TERMWIDTH/2)))
     print("  -H, --hosts".ljust(int(TERMWIDTH/2)) + "show all available hosts(you may not have access to all hosts)".ljust(int(TERMWIDTH/2)))
     print("  -[hostname]".ljust(int(TERMWIDTH/2)) + "show information on specific host, the '@' is not required.".ljust(int(TERMWIDTH/2)))
     print("  -u, --user [user_name] ".ljust(int(TERMWIDTH/2)) + "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
@@ -784,13 +806,13 @@ def show_usage(exit_code):
     print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a user or a hostname to specify a detailed output.".ljust(int(TERMWIDTH/2)))
     print("  -v, --visual".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a host name for a visual queue.".ljust(int(TERMWIDTH/2)) + '\n')
     print('Examples:')
-    print('  {0} -d'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--debug] could also be used'.rjust(int(TERMWIDTH/2)))
-    print('  {0} -l'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--long] could also be used'.rjust(int(TERMWIDTH/2)))
-    print('  {0} --long --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-l] could also be used'.rjust(int(TERMWIDTH/2)))
-    print('  {0} -u johndoe33 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
-    print('  {0} -uf johndoe33 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.rjust(int(TERMWIDTH/2)))
+    print('  {0} -d'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--debug] could also be used'.ljust(int(TERMWIDTH/2)))
+    print('  {0} -g'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--general_access] could also be used'.ljust(int(TERMWIDTH/2)))
+    print('  {0} -g --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-g] could also be used'.ljust(int(TERMWIDTH/2)))
+    print('  {0} -u jdoe3 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.ljust(int(TERMWIDTH/2)))
+    print('  {0} -uf jdoe3 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.ljust(int(TERMWIDTH/2)))
     print('  {0} -corke'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)))
-    print('  {0} -l --visual'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-v] could also be used.'.rjust(int(TERMWIDTH/2)) + '\n')
+    print('  {0} -g --visual'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-v] could also be used.'.ljust(int(TERMWIDTH/2)) + '\n')
     print("Hint: Sometimes it's better to pipe through less.")
     print("{0} [-flags] | less".format(SCRIPT_NAME).center(int(TERMWIDTH)))
 

@@ -8,7 +8,7 @@
                                                                 |_|    |___/ 
 -------------------------------------------------------------------------------
 * node-search.py started in late July/Early August 2016 by intern Cody Kankel for
-  Notre Dame CRC.
+  the CRC.
 
 * node-search.py is a utility script, which can be seen as a swiss-army knife
   type of program for finding relevant information for the Univa Grid Engine.
@@ -28,24 +28,24 @@
   You can also add it to your own manpages if you'd like.
 
 * The node_search.sh script allows node-search to be ran without loading the
-  Python 3 module. By default, there are no module loaded and it would be a 
+  Python 3 module. By default, there are no modules loaded and it would be a 
   pain to have to load the python 3 module everytime you wanted check the 
   status of a job, so this bash script sets up the environment temporarily
   to run Python 3 scripts. The only configuration needed with this is to
   properly specifiy the full path for the actual python 3 script.
 
-* If you are not a member of Notre Dame and are using the UGE and want to use
+* If you are not a member of CRC and are using the UGE and want to use
   this, you may need to play around with trial and error, as there may be 
-  ND specific items sprinkled around in the code. As far as I can tell, if you
+  CRC specific items sprinkled around in the code. As far as I can tell, if you
   have qconf, qstat, and the UGE you should in theory be good to go. All you'd
-  have to do is change around the names of the Long/Debug queues in the python
+  have to do is change around the names of the general_access/debug queues in the python
   script to what your needs are.
 
 * node-search.py will search through information gathered from qstat about the
   UGE environment, including information about nodes, users, user-lists, host-
   groups, and it can even give a visualization of a host-group.
 
-* This script is assuming (1) Python 3 is installed, tested with python 3.4.0,
+* This script is assuming (1) Python 3 is installed, tested with python 3.6.0 and 3.4.0,
   (2) the subprocess module is installed [should be by default], and (3) you
   have qconf and qstat working and configured.
 
@@ -53,5 +53,4 @@
   Clean up formatting on -u --details options.
   Add jobs to Host groups --details output
   Make pending_jobs OO. 
-  Make --all feature to display info from all hostgroups. Be careful of duplicate nodes.
-  Test with new hardware (Dec/Jan '16)
+  Check -all option for duplicate nodes!

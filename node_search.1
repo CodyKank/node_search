@@ -1,104 +1,131 @@
 .\" Manpage for node_search.py.
 .\" Contact ckankel@nd.edu to correct typos or errors.
-.TH man 1 "4 DEC 2016" "1.0" "node_search man page"
+.TH man 1 "17 MAY 2017" "1.0.2" "node_search man page"
 .SH NAME
 node_search \- get node, user, or host-group information from Univa Grid Engine
 .SH SYNOPSIS
-.BR "node_search.py " "[" "-h" ", " " --help" "] [" "-d" ", " " --debug" "] [" "-l" ", " " --long" "] [" "-H" ", " " --hosts" "] [" "-hostname" "] [" "-u" ", " " --user" " username] [" "-uf" " username] [" "-U" "] [" "-v, --visual" "]"
+\fBnode_search.sh \fR[\fB-h\fR, \fB--help\fR] [\fB-d\fR, \fB--debug\fR] [\fB-g\fR, \fB--general_access\fR] 
+[\fB-H\fR, \fB --hosts\fR] [\fB-hostname\fR] [\fB-u\fR, \fB--user username\fR] [\fB-uf username\fR] [\fB-U\fR] 
+[\fB-v\fR, \fB--visual\fR]
 .SH DESCRIPTION
-node_search is a python 3 script which gathers information from the Univa Grid Engine and displays that information to stdout, which can then be redirected as desired. The following information can be obtained:
+\fRnode_search is a python 3 script which gathers information from the Univa Grid Engine and displays 
+that information to stdout, which can then be redirected as desired. The following information can be obtained:
 ." Next Paragraph
 .PP
-Queue/Host-group core usage, User Job information, which Host-groups a User belongs to, which Host-groups exist, which users are recognized by UGE currently.
+\fRQueue/Host-group core usage, User Job information, which Host-groups a User belongs to, which 
+Host-groups exist, which users are recognized by UGE currently.
 
 ." BEGIN OPTIONS !!
 
 .SH OPTIONS
 .TP
-.BR "-h" ","  " --help" 
-Show a small help dialogue with a short description of each option and a few examples.
+\fB-h\fR, \fB--help 
+\fRShow a small help dialogue with a short description of each option and a few examples.
 
 ." Next Option . . .
 .TP
-.BR "-d" ","  " --debug" 
-.RB "Display information pertaining to the Debug queue such as core usage (free cores, disabled cores, used cores) and node usage (free nodes, disabled nodes, used nodes). This option allows the optional "\
- "--details" " flag or it can take the " "-v/--visual" " flag."
+\fB-d\fR, \fB--debug 
+\fRDisplay information pertaining to the Debug queue such as core usage (free cores, disabled cores, 
+used cores) and node usage (free nodes, disabled nodes, used nodes). This option allows the optional
+\fB--details \fRflag or it can take the \fB-v\fR/\fB--visual \fRflag.
 
 ." Next Option . . .
 .TP
-.BR "-l" "," " --long"
-.RB "Display information pertaining to the Long(General Access) queue such as core usage (free cores, disabled cores, used cores) and node usage (free nodes, disabled nodes, used nodes). This option allows the optional "\
- "--details" " flag or it can take the " "-v/--visual" " flag."
+\fB-g\fR, \fB--general_access
+\fRDisplay information pertaining to the Long(General Access) queue such as core usage (free cores, 
+disabled cores, used cores) and node usage (free nodes, disabled nodes, used nodes). This option 
+allows the optional \fB--details \fRflag or it can take the \fB-v\fR/\fB--visual\fR flag.
 
 ." Next Option . . .
 .TP
-.BR "-H" "," " --hosts"
-.RI "Shows all known hosts configured to be used by the Univa Grid Engine. " "Not all of the host-groups may be available to you, see " "-uf"
+\fB-H\fR, \fB--hosts
+\fRShows all known hosts configured to be used by the Univa Grid Engine. \fINot all of the host-groups 
+may be available to you, see \fB-uf
 
 ." Next Option . . .
 .TP
-.B -[hostname]
-.RB "This option takes in a variable hostname, which can be found by using " "-H" ", and gives the same information found by using " "-d" " or " "-l" " i.e. core usage and node usage information can be found and displayed from that \
-specified hostname. Even if you cannot submit jobs to this specific host-group, you can still view this information. Don't get confused. " "NOTE:" " You do not need the '" "@" "' while specifying the hostname. (i.e. -corke not \
--@corke) "
+\fB-[hostname]
+\fRThis option takes in a variable hostname, which can be found by using \fB-H\fR, and gives the 
+same information found by using \fB-d \fRor \fB-g \fRi.e. core usage and node usage information 
+can be found and displayed from that specified hostname. Even if you cannot submit jobs to this 
+specific host-group, you can still view this information. Don't get confused. \fBNOTE:\fR You 
+do not need the \fB"@"\fR while specifying the hostname. (i.e. -corke not -@corke)
 
 ." Next Option . . .
 .TP
-.BR "-u" "," " --user" " [username]"
-.RB "Display job information along with what node and core information pertaining to the specifed user after " "-u" " or " "--user" ". The maximum Memory used detected by the grid engine will also be shown. \
-This option will take the optional flag "--details" " for a more detailed output. The detailed output\
-will display all of the jobs running on the nodes that the specified user has jobs running on. Since our nodes are a shared resource, it may be useful to see this if a job is running poorly."
+\fB-u\fR, \fB--user \fR[\fBusername\fR]
+\fRDisplay job information along with what node and core information pertaining to the specifed 
+user after \fB-u \fRor \fB--user\fR. The maximum Memory used detected by the grid engine will also
+be shown. This option will take the optional flag \fB-details\fR for a more detailed output. The 
+detailed output will display all of the jobs running on the nodes that the specified user has jobs 
+running on. Since our nodes are a shared resource, it may be useful to see this if a job is running 
+poorly.
 
 ." Next Option . . .
 .TP
-.BR "-uf" " [username]"
-.RB "Show which host-groups and user-lists the specified user after " "-uf" " belongs to. The information displayed will indicate which host-groups the user has access to, i.e. which host-groups that user can submit jobs to using the \
-UGE. The user-list aspect of this option is not entirely useful, but those user-lists are what is used in conifguring qconf to tell the UGE which users belong to which host-groups.
+\fB-uf \fR[\fBusername\fR]
+\fRShow which host-groups and user-lists the specified user after \fB-uf \fRbelongs to. The 
+information displayed will indicate which host-groups the user has access to, i.e. which host-groups 
+that user can submit jobs to using the UGE. The user-list aspect of this option is not entirely 
+useful, but those user-lists are what is used in conifguring qconf to tell the UGE which users belong 
+to which host-groups.
 
 ." Next Option . . .
 .TP
-.B -U
-.RB "Different from " "-u" ", " " -U" " will display all users currently interacting with the UGE. This means those users: have jobs running somewhere controlled by the UGE, are waiting in a queue controlled by the UGE, or recently \
-interacted with the UGE in some way. Thus, not every user who has access to the UGE will be displayed from this. Do not fret if your name is not on this list. 
+\fB-U
+\fRDifferent from \fB-u\fR, \fB-U \fRwill display all users currently interacting with the UGE. This 
+means those users: have jobs running somewhere controlled by the UGE, are waiting in a queue controlled 
+by the UGE, or recently interacted with the UGE in some way. Thus, not every user who has access to 
+the UGE will be displayed from this. Do not fret if your name is not on this list. 
 
 .SH OPTIONAL FLAGS
 
 .TP
-.BR "-v" ", " "--visual"
-.RB "Display a visual representation of a queue. In this visual representation, '[0]' represents an open core, '[#]' represents a disabled core, and [~] represents a used or taken core. This flag can be passed in after using "\
- "node_search.py -d, -l, " "or " "-[hostname]" ". See Examples below.
+\fB-v\fR, \fB--visual
+\fRDisplay a visual representation of a queue. In this visual representation, \fB[0]\fR represents 
+an open core, \fB[#]\fR represents a disabled core, and \fB[~]\fR represents a used or taken core. 
+This flag can be passed in after using \fBnode_search.py -d, -g, \fRor \fB-[hostname]\fR. See 
+Examples below.
 
 ." Next Option . . .
 .TP
-.B --details
-.RB "Show a more detailed output of whatever was passed in to " "node_search" ". The result of " "--details" " depends on what it is modifying. If it is modifying the debug or long queues or a specifed host-group, then the output will \
-show all of the machines/nodes that belong to that queue or host-group. Each one of those nodes will also show its core  usage (used vs total). If " "--details" " is modifying a user, then all of the nodes that the user has jobs running on will be displayed, along with every other job running on that specific node. If the user has any pending jobs then those will be shown as well. If " "--details" " is modifying the " "-uf" " option, then it will display all of the \
-nodes which belong to the host-groups the specified user has access to. "
+\fB--details
+\fRShow a more detailed output of whatever was passed in to \fRnode_search\fR. The result of 
+\fB--details\fR depends on what it is modifying. If it is modifying the debug or long queues or a 
+specifed host-group, then the output will show all of the machines/nodes that belong to that queue 
+or host-group. Each one of those nodes will also show its core  usage (used vs total). If \fB--details
+\fR is modifying a user, then all of the nodes that the user has jobs running on will be displayed, 
+along with every other job running on that specific node. If the user has any pending jobs then those 
+will be shown as well. If \fB--details\fR is modifying the \fB-uf \fRoption, then it will display 
+all of the nodes which belong to the host-groups the specified user has access to.
 
 ." END OPTIONS !!
 
 .SH EXAMPLES
 
 .TP
-.B node_search.py -l
-Display information pertaining to the long queue (general access)
+\fBnode_search.py -g
+\fRDisplay information pertaining to the long queue (general access)
 
 .TP
-.B node_search.py --debug --details
-Display detailed information pertaining to the debug queue, this will yield information such as the name of all of the nodes currently occupying the debug queue and their core information.
+\fBnode_search.py --debug --details
+\fRDisplay detailed information pertaining to the debug queue, this will yield information such as 
+the name of all of the nodes currently occupying the debug queue and their core information.
 
 .TP
-.B node_search.py -general_access -v
-Display a visual representation of the host-group '@general_access'. Notice how the '@' is not needed for the host-group.
+\fBnode_search.py -general_access -v
+\fRDisplay a visual representation of the host-group '@general_access'. Notice how the '@' is not 
+needed for the host-group.
 
 .TP
-.B node_search.py -uf JohnDoe33 --details
-Display a detailed view of the host-groups that user JohnDoe33 belongs to. This will show each and every node that also belongs to those host-groups. It may be wise to pipe this output through something along the lines of less/more. \
-e.g. node_search.py -uf JohnDoe33 --details | less
+\fBnode_search.py -uf JohnDoe33 --details
+\fRDisplay a detailed view of the host-groups that user JohnDoe33 belongs to. This will show each 
+and every node that also belongs to those host-groups. It may be wise to pipe this output through 
+something along the lines of less/more. e.g. node_search.py -uf JohnDoe33 --details | less
 
  
 .SH BUGS
-node_search.py -uf fake_user \- will act as if it is a real user.
+\fRnode_search.py -uf fake_user \- will act as if it is a real user.
 Report any new findings to ckankel@nd.edu.
 .SH AUTHOR
-Cody Kankel (ckankel@nd.edu)
+\fRCody Kankel (ckankel@nd.edu)
