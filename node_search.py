@@ -555,12 +555,12 @@ def draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, 
     print('{0}'.format(str(used_cores)).ljust(int(screen_size/2)))
     print('Free Cores:'.ljust(int(screen_size/2)), end="")
     print('{0}'.format(str(free_cores)).ljust(int(screen_size/2)))
-    print('Disabled Cores:'.ljust(int(screen_size/2)), end="")
+    print('Disabled/Error Cores:'.ljust(int(screen_size/2)), end="")
     print('{0}'.format(str(disabled_cores)).ljust(int(screen_size/2)))
     print('Total Nodes:'.ljust(int(screen_size/2)),end ="")
     print('{0}'.format(str(total_nodes)).ljust(int(screen_size/2)))
     print('-'.center(screen_size, '-'))
-    print(('[0] = Open Core' + PRINT_INDENT + '[~] = Used Core' + PRINT_INDENT + '[#] = Disabled Core').center(screen_size) + '\n')
+    print(('[0] = Open Core' + PRINT_INDENT + '[~] = Used Core' + PRINT_INDENT + '[#] = Disabled/Err Core').center(screen_size) + '\n')
     
     #Drawing representation of the Queue
     drawn_cores = 0
@@ -619,7 +619,7 @@ def print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_h
     print('Total Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores).ljust(int(TERMWIDTH/2)))
     print('Used Cores:'.ljust(int(TERMWIDTH/2)) + str(used_cores).ljust(int(TERMWIDTH/2)))
     print('Free Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores - used_cores).ljust(int(TERMWIDTH/2)))
-    print('Disabed/Error Cores:'.ljust(int(TERMWIDTH/2)) + str(disabled_cores).ljust(int(TERMWIDTH/2)))
+    print('Disabled/Error Cores:'.ljust(int(TERMWIDTH/2)) + str(disabled_cores).ljust(int(TERMWIDTH/2)))
     print("")
     print('Total Nodes:'.ljust(int(TERMWIDTH/2)) + str(total_nodes).ljust(int(TERMWIDTH/2)))
     print('Used Nodes:'.ljust(int(TERMWIDTH/2)) + str(total_nodes - empty_nodes).ljust(int(TERMWIDTH/2)))
