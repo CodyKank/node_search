@@ -44,6 +44,7 @@ class Node:
     def add_job(self, job):
         """Method to add an instance of class Job to the job_list of a node."""
         self.job_list.append(job)
+        self.num_jobs += 1
     
     def set_load(self, load):
         """Method to set the sys-load for a node"""
@@ -317,7 +318,7 @@ def main():
         else:
             process_user(sys.argv[2])
     elif (sys.argv[1] == '-a' or sys.argv[1] == '--all'):
-        if len(sys.argv) != 2:
+        if len(sys.argv) > 3:
             print('Argument Error. To see info on every host group just type "node_search.sh --all" or use "-a".')
             show_usage(23)
         desired_host = "all"
@@ -394,8 +395,8 @@ def find_host_groups(user_name, detail_switch):
             if ul in line:
                 host_user_list.append(line.split('=')[0])
     # Manually adding these, as they do not have user_lists associated with them (open to everyone) !!!
-    host_user_list.append(DEBUG_QUEUE_HOSTGROUP)
-    host_user_list.append(GENERAL_ACCESS_QUEUE_HOSTGROUP)
+    host_user_list.append('@' + DEBUG_QUEUE_HOSTGROUP)
+    host_user_list.append('@' + GENERAL_ACCESS_QUEUE_HOSTGROUP)
     
     if detail_switch:
         print_duser_host(host_user_list, user_name, user_list)
@@ -516,7 +517,8 @@ def process_host(desired_host):
             print('Error: Arg syntax error with: ' + sys.argv[2])
             show_usage(23)
     elif len(sys.argv) < 3:
-        print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_host, disabled_cores, disabled_nodes)
+        print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_host, disabled_cores, 
+                        disabled_nodes)
     else:
         print('Error: Too many args')
         show_usage(23)
@@ -524,22 +526,37 @@ def process_host(desired_host):
 #^----------------------------------------------------------------------------- process_host(desired_host)    
 
 def getAllMachines():
-    """Function to get all of the machines UGE can find and return a list of them as strings."""
+    """Function to get all of the machines UGE can find and return a list of them as strings.
+    Returns: List of strings."""
+
     validHosts = (subprocess.getoutput("qconf -shgrpl").split())
     machineList = []
+    processedHGList = []
+    readNodes = False
     for host in validHosts:
-        hostMachineList = ((subprocess.getoutput("qconf -shgrp_resolved " + str(host))).split())
-        for machine in hostMachineList:
-            machineList.append(machine)
+        hostMachineList = ((subprocess.getoutput("qconf -shgrp_tree " + str(host))).split())
+        for element in hostMachineList:
+            if '@' in element: # If it is a HG name
+                if element not in processedHGList:
+                    processedHGList.append(element)
+                    readNodes = True # We haven't seen this HG yet, process the nodes
+                else: 
+                    readNodes = False # We've already seen this HG, don't process nodes
+            elif readNodes:
+                machineList.append(element)
+            else: # readNodes == False and '@' not in element(not HG), already counted this node!
+                continue # We've already seen this node within the hostgroup, don't count it.
     return machineList
 #^----------------------------------------------------------------------------- getAllMachines()
 
-def draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, disabled_cores, disabled_nodes, node_list, free_cores):
-    """Method to draw the queue on the screen. Will use '[]' to represent a core."""
+def draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, 
+                disabled_cores, disabled_nodes, node_list, free_cores):
+    """Method to draw the queue on the screen. Will use '[]' to represent a core.
+    Returns: Nothing, draws to stdout."""
     
     if total_cores > 400:
-        screen_size = 120
-        cores_per_row = 40
+        screen_size = 119
+        cores_per_row = 39
     else:
         screen_size = 100
         cores_per_row = 30
@@ -560,7 +577,8 @@ def draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, 
     print('Total Nodes:'.ljust(int(screen_size/2)),end ="")
     print('{0}'.format(str(total_nodes)).ljust(int(screen_size/2)))
     print('-'.center(screen_size, '-'))
-    print(('[0] = Open Core' + PRINT_INDENT + '[~] = Used Core' + PRINT_INDENT + '[#] = Disabled/Err Core').center(screen_size) + '\n')
+    print(('[0] = Open Core' + PRINT_INDENT + '[~] = Used Core' + PRINT_INDENT + \
+           '[#] = Disabled/Err Core').center(screen_size) + '\n')
     
     #Drawing representation of the Queue
     drawn_cores = 0
@@ -587,12 +605,14 @@ def draw_queue(total_nodes, total_cores, used_cores, empty_nodes, desired_host, 
                 if drawn_cores == cores_per_row:
                     drawn_cores = 0
                     print('')
-    print('\n' + '-'.center(100,'-'))
+    print('\n' + '-'.center(screen_size,'-'))
     return
 #^----------------------------------------------------------------------------- draw_queues(. . .)
 
-def print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desired_host, disabled_cores, disabled_nodes, node_list):
-    """Prints detailed version of the designated host. Will print every node along with the totals."""
+def print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desired_host, 
+                        disabled_cores, disabled_nodes, node_list):
+    """Prints detailed version of the designated host. Will print every node along with the totals.
+    Return: Nothing, writes to stdout."""
     
     print('\nDetailed info pertaining to: ' + desired_host)
     print('Total Nodes: {0}'.format(str(len(node_list))) + ' (some may be disabled!)')
@@ -603,7 +623,7 @@ def print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desir
     for node in node_list:
         cores = str(node.get_used()) + '/' + str(node.get_total())
         if node.get_disabled_switch():
-            disabled = 'd'
+            disabled = 'Unavailable'
         else:
             disabled = ''
         print((PRINT_INDENT + node.get_name()).ljust(int(TERMWIDTH/2)) + PRINT_INDENT + (str(cores).rjust(5,' ') \
@@ -611,7 +631,8 @@ def print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desir
     return
 #^----------------------------------------------------------------------------- print_detailed_host(. . .)
     
-def print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_host, disabled_cores, disabled_nodes):
+def print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_host, 
+                    disabled_cores, disabled_nodes):
     """Prints the information from the process_host function in a pretty* format"""
     
     print(str(desired_host).ljust(TERMWIDTH))
@@ -685,14 +706,16 @@ def process_user(user_name):
         temp_node.set_used_mem(used_mem)
         temp_node.set_free_mem(free_mem)
         
-        # In qstat -F, qf:min_cpu . . . . is the last item before the jobs are listed, 28 is how many char's that string is (don't want it)
+        # In qstat -F, qf:min_cpu . . . . is the last item before the jobs are listed, 
+        # 28 is how many char's that string is (don't want it)
         node_stat= host[host.find('qf:min_cpu_interval=00:05:00') + 28\
                              :host.find('\n---------------------------------------------------------------------------------\n')]
         # There is always an extra '\n' in here, so subtract 1 to get rid of it
         num_jobs = len(node_stat.split('\n')) -1
         # If there are any jobs, parse them and gather info
         if num_jobs > 0:
-            # Python is non-inclusive for the right operand, and we want to skip another extra '\n' so start at 1, and want to go num_jobs
+            # Python is non-inclusive for the right operand, and we want to 
+            # skip another extra '\n' so start at 1, and want to go num_jobs
             for i in range(1, num_jobs + 1):
                 info = node_stat.split('\n')[i].split()
                 temp_job = Job(info[2], info[3], info[7])
@@ -712,9 +735,9 @@ def process_user(user_name):
          
     if len(sys.argv) == 4:
         if sys.argv[3] == '--details':
-            print_detailed_user(node_list, pending_list, user_name)
+            print_detailed_user(final_list, pending_list, user_name)
         else:
-            print('Error: Arg syntax error with: ' + args[4])
+            print('Error: Arg syntax error with: ' + sys.argv[3])
             show_usage(23)
     else:
         print_short_user(final_list, pending_list, user_name)
@@ -722,15 +745,32 @@ def process_user(user_name):
  
 def print_detailed_user(node_list, pending_list, user_name):
     """Prints detailed version, as in all of the nodes the specified user's jobs are on along with other
-    user's jobs which are running on that node. Will also print all of user's pending jobs(if any)."""
+    users' jobs which are running on that node. Will also print all of user's pending jobs(if any).
+    Upon completion, will exit."""
     
     user_pend = []
     if len(pending_list):    
-        for j in range(3, len(pending_list)):
+        for j in range(1, len(pending_list)):
             user_pend.append(pending_list[j])
     
+    print("=".center(TERMWIDTH,"="))
+    print("=".ljust(TERMWIDTH - 1) + "=")
+    print("=" + ("Detailed Node information for jobs corresponding to {0}."\
+                .format(user_name)).center(TERMWIDTH - 2) + "=")
+    print("=".ljust(TERMWIDTH - 1) + "=")
+    print("=".center(TERMWIDTH, '=') + "\n")
+
     for node in node_list:
-        print(node)
+        print(node.name + (str(node.used_cores) + "/" + str(node.total_cores)).rjust(int(TERMWIDTH/2)))
+        print('-'.center(TERMWIDTH,"-"))
+        print("JobID".ljust(10) + "JobName".ljust(20) + "User".ljust(20) + "MaxVmem".ljust(20) + \
+              "Cores".ljust(10))
+        for job in node.job_list:
+            print(job.id.ljust(10) + job.name.ljust(20) + job.user.ljust(20) + job.max_mem.ljust(20) + \
+                  job.cores.ljust(10))
+                
+        print('') # Simple newline
+
     if len(user_pend):
         print('\n' + '#'.center(TERMWIDTH, '#'))
         print("{0}'s pending jobs:".format(user_name).center(TERMWIDTH))
@@ -746,7 +786,7 @@ def print_short_user(node_list, pending_list, user_name):
     
     user_pend = []
     if len(pending_list):    
-        for j in range(3, len(pending_list)):
+        for j in range(1, len(pending_list)): # Skipping first, as its a print header and not job.
             user_pend.append(pending_list[j])
 
     job_count = 0
@@ -773,8 +813,6 @@ def print_short_user(node_list, pending_list, user_name):
                     + job.get_name().ljust(int(TERMWIDTH/4)) + PRINT_INDENT +str(job.get_core_info()).ljust(int(TERMWIDTH/4))\
                     + job.get_max_mem().ljust(int(TERMWIDTH/4)))
                 job_count += 1
-                this_nodeJobs += 1
-                print('User Jobs on node: ' + str(this_nodeJobs))
     print("----\n{0}'s Total Running Jobs: {1}\n".format(user_name, str(job_count)))
         
     if len(user_pend):
@@ -803,7 +841,7 @@ def show_usage(exit_code):
     print("  -uf, [user_name]".ljust(int(TERMWIDTH/2)) + "show which host groups are available to specified user.".ljust(int(TERMWIDTH/2)))
     print("  -U".ljust(int(TERMWIDTH/2)) + "show a list of all users currently recognized by the Univa Grid Engine.".ljust(int(TERMWIDTH/2)))
     print("Optional arguments:".ljust(int(TERMWIDTH/2)))
-    print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a user or a hostname to specify a detailed output.".ljust(int(TERMWIDTH/2)))
+    print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed to certain args for a detailed output.".ljust(int(TERMWIDTH/2)))
     print("  -v, --visual".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a host name for a visual queue.".ljust(int(TERMWIDTH/2)) + '\n')
     print('Examples:')
     print('  {0} -d'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--debug] could also be used'.ljust(int(TERMWIDTH/2)))

@@ -14,5 +14,7 @@ export LOADEDMODULES=$LOADEDMODULES:opt_local/1.0:gcc/6.2.0:python/3.6.0
 export _LMFILES_=$_LMFILES_:/afs/crc.nd.edu/x86_64_linux/Modules/modules/system_modules/opt_local/1.0:/afs/crc.nd.edu/x86_64_linux/Modules/modules/development_tools_and_libraries/gcc/6.2.0:/afs/crc.nd.edu/x86_64_linux/Modules/modules/development_tools_and_libraries/python/3.6.0
 export PATH=$PATH:/opt/crc/p/python/3.6.0/gcc/6.2.0/bin:
 
-/afs/crc.nd.edu/user/c/ckankel/Public/node_search/node_search.py $@
+# Calling the node_search.py script. Piping through less so if the results are longer than one page,
+# it will be opened with less instead of just dumping to the screen.
+/afs/crc.nd.edu/user/c/ckankel/Public/node_search/node_search.py $@ | less -F
 

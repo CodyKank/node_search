@@ -41,8 +41,8 @@
   have to do is change around the names of the general_access/debug queues in the python
   script to what your needs are.
 
-* node-search.py will search through information gathered from qstat about the
-  UGE environment, including information about nodes, users, user-lists, host-
+* node-search.py will search through information gathered from qstat and other tools 
+  about the UGE environment, including information about nodes, users, user-lists, host-
   groups, and it can even give a visualization of a host-group.
 
 * This script is assuming (1) Python 3 is installed, tested with python 3.6.0 and 3.4.0,
@@ -50,7 +50,5 @@
   have qconf and qstat working and configured.
 
 * To do:
-  Clean up formatting on -u --details options.
   Add jobs to Host groups --details output
   Make pending_jobs OO. 
-  Check -all option for duplicate nodes!
