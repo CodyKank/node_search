@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This bash script is simply loading the necesarry env var's to allow a user to run python 3
-# without having to 'module load python/3.4.0' Then, it is running the node_search.py script.
+# without having to 'module load python/3.x.x' Then, it is running the node_search.py script.
 # Please read that script or view the man page for more information on what that script does.
 
 # NOTE: These requirements will change when there is a new version of Python3 installed. To update
@@ -16,5 +16,6 @@ export PATH=$PATH:/opt/crc/p/python/3.6.0/gcc/6.2.0/bin:
 
 # Calling the node_search.py script. Piping through less so if the results are longer than one page,
 # it will be opened with less instead of just dumping to the screen.
+# The following needs to be the absolute path to node_search.py
 /afs/crc.nd.edu/user/c/ckankel/Public/node_search/node_search.py $@ | less -F
 

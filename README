@@ -52,3 +52,5 @@
 * To do:
   Add jobs to Host groups --details output
   Make pending_jobs OO. 
+  Make --stats option for total core usage. Possible a --report also, for total number
+  of jobs, users, utilization, % nodes down, etc.

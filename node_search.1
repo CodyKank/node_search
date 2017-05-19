@@ -1,6 +1,6 @@
 .\" Manpage for node_search.py.
 .\" Contact ckankel@nd.edu to correct typos or errors.
-.TH man 1 "18 MAY 2017" "1.0.3" "node_search man page"
+.TH man 1 "19 MAY 2017" "1.0.3" "node_search man page"
 .SH NAME
 node_search \- get node, user, or host-group information from Univa Grid Engine
 .SH SYNOPSIS
@@ -9,8 +9,8 @@ node_search \- get node, user, or host-group information from Univa Grid Engine
 [\fB-u\fR, \fB--user username\fR] [\fB-uf username\fR] [\fB-U\fR] [\fB-v\fR, \fB--visual\fR]
 
 .SH DESCRIPTION
-\fRnode_search is a python 3 script which gathers information from the Univa Grid Engine and displays 
-that information to stdout, which can then be redirected as desired. The following information can be obtained:
+\fRnode_search gathers information from the Univa Grid Engine and displays that information to 
+stdout, which can then be redirected as desired. The following information can be obtained:
 ." Next Paragraph
 .PP
 \fRQueue/Host-group core usage, User Job information, which Host-groups a User belongs to, which 
@@ -51,6 +51,13 @@ same information found by using \fB-d \fRor \fB-g \fRi.e. core usage and node us
 can be found and displayed from that specified hostname. Even if you cannot submit jobs to this 
 specific host-group, you can still view this information. Don't get confused. \fBNOTE:\fR You 
 do not need the \fB"@"\fR while specifying the hostname. (i.e. -corke not -@corke)
+
+." Next Option . . .
+.TP
+\fB-a\fR,\fB --all
+\fRDisplay usage information on all nodes detected by UGE. This searches every host-group with a 
+running total of usage, while discarding any duplicate machines. Duplicate machines occur when 
+there are nested hostgroups. The \fB--details\fR option can be used with this as well.
 
 ." Next Option . . .
 .TP

@@ -4,7 +4,7 @@ import sys, subprocess
 
 """Script to get and report information on nodes withtin the Sun Grid Engine for the CRC at Notre Dame. It uses
 the subprocess module to execute bash(tcsh) commands and gather their output. Basically this script is a fancy
-swiss army knife parsing tool. Currently works with python 3.4.0. Created July 2016.
+swiss army knife parsing tool. Currently works with python 3.4.0 and 3.6.0. Created July 2016.
 Issues or bugs contact: ckankel@nd.edu
 Purposely used exit codes:
     0 = clean run, proper execution
@@ -615,7 +615,7 @@ def print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desir
     Return: Nothing, writes to stdout."""
     
     print('\nDetailed info pertaining to: ' + desired_host)
-    print('Total Nodes: {0}'.format(str(len(node_list))) + ' (some may be disabled!)')
+    print('Total Nodes: {0}'.format(str(len(node_list)))) 
     print('Total Cores : {0}'.format(total_cores) + PRINT_INDENT + 'Used Cores: {0}'.format(used_cores)
           + PRINT_INDENT + 'Free Cores: {0}'.format(str(total_cores - used_cores)) )
     print('\nThe following is a list of each node within {0}:\n'.format(desired_host))
@@ -636,7 +636,7 @@ def print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_h
     """Prints the information from the process_host function in a pretty* format"""
     
     print(str(desired_host).ljust(TERMWIDTH))
-    print('-'.center(TERMWIDTH, '-'))
+    print('-'.center(60, '-'))
     print('Total Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores).ljust(int(TERMWIDTH/2)))
     print('Used Cores:'.ljust(int(TERMWIDTH/2)) + str(used_cores).ljust(int(TERMWIDTH/2)))
     print('Free Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores - used_cores).ljust(int(TERMWIDTH/2)))
@@ -796,21 +796,21 @@ def print_short_user(node_list, pending_list, user_name):
         print()
         print('Node name'.ljust(int(TERMWIDTH/2)) + 'Used Cores'.rjust(int(TERMWIDTH/4)) +
               '  Total Cores'.ljust(int(TERMWIDTH/4)))
-        print('-'.center(int(TERMWIDTH), '-')) #Creating line of separation
+        print('-'.center(int(TERMWIDTH) -1, '-')) #Creating line of separation
         print(node.get_name().ljust(int(TERMWIDTH/2)) +
               ((str(node.get_used())).rjust(int(TERMWIDTH/4)))
               + '  ' + (str(node.get_total())).ljust(int(TERMWIDTH/4)))
         #print('_'.center(TERMWIDTH, '_'))
         
-        print('{0}Job ID'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
-              + '{0}Job Name'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
-              + '{0}Num Cores'.format(PRINT_INDENT).ljust(int(TERMWIDTH/4))
-              + '{0}MAX Memory Used'.format(PRINT_INDENT))
+        print('Job ID'.ljust(int(TERMWIDTH/4))
+              + 'Job Name'.ljust(int(TERMWIDTH/4))
+              + 'Num Cores'.ljust(int(TERMWIDTH/4-1))
+              + 'MAX Memory Used')
         for job in node.get_job_list():
             this_nodeJobs = 0
             if user_name in job.get_user():
-                print(PRINT_INDENT + str(job.get_id()).ljust(int(TERMWIDTH/4)) + PRINT_INDENT \
-                    + job.get_name().ljust(int(TERMWIDTH/4)) + PRINT_INDENT +str(job.get_core_info()).ljust(int(TERMWIDTH/4))\
+                print(str(job.get_id()).ljust(int(TERMWIDTH/4))  \
+                    + job.get_name().ljust(int(TERMWIDTH/4)) +str(job.get_core_info()).ljust(int(TERMWIDTH/4))\
                     + job.get_max_mem().ljust(int(TERMWIDTH/4)))
                 job_count += 1
     print("----\n{0}'s Total Running Jobs: {1}\n".format(user_name, str(job_count)))
@@ -837,12 +837,14 @@ def show_usage(exit_code):
     print("  -g, --general-access".ljust(int(TERMWIDTH/2)) + "show information from the general_access queue.".ljust(int(TERMWIDTH/2)))
     print("  -H, --hosts".ljust(int(TERMWIDTH/2)) + "show all available hosts(you may not have access to all hosts)".ljust(int(TERMWIDTH/2)))
     print("  -[hostname]".ljust(int(TERMWIDTH/2)) + "show information on specific host, the '@' is not required.".ljust(int(TERMWIDTH/2)))
-    print("  -u, --user [user_name] ".ljust(int(TERMWIDTH/2)) + "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
+    print("  -u, --user [user_name] ".ljust(int(TERMWIDTH/2)) + \
+          "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
     print("  -uf, [user_name]".ljust(int(TERMWIDTH/2)) + "show which host groups are available to specified user.".ljust(int(TERMWIDTH/2)))
     print("  -U".ljust(int(TERMWIDTH/2)) + "show a list of all users currently recognized by the Univa Grid Engine.".ljust(int(TERMWIDTH/2)))
     print("Optional arguments:".ljust(int(TERMWIDTH/2)))
     print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed to certain args for a detailed output.".ljust(int(TERMWIDTH/2)))
-    print("  -v, --visual".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a host name for a visual queue.".ljust(int(TERMWIDTH/2)) + '\n')
+    print("  -v, --visual".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a host name for a visual queue.".ljust(int(TERMWIDTH/2)) \
+          + '\n')
     print('Examples:')
     print('  {0} -d'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--debug] could also be used'.ljust(int(TERMWIDTH/2)))
     print('  {0} -g'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--general_access] could also be used'.ljust(int(TERMWIDTH/2)))
