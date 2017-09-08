@@ -98,14 +98,16 @@ Examples below.
 ." Next Option . . .
 .TP
 \fB--details
-\fRShow a more detailed output of whatever was passed in to \fRnode_search\fR. The result of 
-\fB--details\fR depends on what it is modifying. If it is modifying the debug or long queues or a 
+\fRShow a more detailed output of whatever was passed into \fRnode_search\fR. The result of 
+\fB--details\fR depends on what it is modifying. If it is modifying the debug queue, long queue, or a 
 specifed host-group, then the output will show all of the machines/nodes that belong to that queue 
-or host-group. Each one of those nodes will also show its core  usage (used vs total). If \fB--details
-\fRis modifying a user, then all of the nodes that the user has jobs running on will be displayed, 
-along with every other job running on that specific node. If the user has any pending jobs then those 
-will be shown as well. If \fB--details \fRis modifying the \fB-uf \fRoption, then it will display
-all of the nodes which belong to the host-groups the specified user has access to.
+or host-group. Each one of those nodes will also show its core  usage (used vs total). This will be
+the same behavior that occurs if \fB--details\fR is used to modify \fB-a \fR or\fB --all\fR. If \fB--details
+\fRis modifying a user, then all of the nodes the specified user is running will be displayed along with all
+of the processes that user owns and the respective memory usage, CPU%, and time. This is useful for when a job submitted 
+through UGE spawns or starts multiple processes which are not necessarily tracked by UGE.  If the user has any 
+pending jobs then those will be shown as well. If \fB--details \fRis modifying the \fB-uf \fRoption, then it will 
+display all of the nodes which belong to the host-groups the specified user has access to.
 
 ." END OPTIONS !!
 
@@ -130,6 +132,11 @@ needed for the host-group.
 \fRDisplay a detailed view of the host-groups that user JohnDoe33 belongs to. This will show each 
 and every node that also belongs to those host-groups. It may be wise to pipe this output through 
 something along the lines of less/more. e.g. node_search.py -uf JohnDoe33 --details | less
+
+.TP
+\fBnode_search.py -u JohnDoe
+\fRDisplay the user JohnDoe and their jobs along with core usage and the nodes the jobs are running
+on.
 
  
 .SH BUGS

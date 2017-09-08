@@ -786,14 +786,14 @@ def print_detailed_user(node_list, pending_list, user_name):
                 tmp_user_list = {}
                 lineSplit = line.split()
                 tmp_user_list["PID"] = lineSplit[0]
-                tmp_user_list["RESMEM"] = lineSplit[5]
+                tmp_user_list["RESMEM"] = cleanMem(lineSplit[5])
                 tmp_user_list["CPU%"] = lineSplit[8]
                 tmp_user_list["TIME"] = lineSplit[10]
                 tmp_user_list["PNAME"] = lineSplit[11]
                 user_proc_list.append(tmp_user_list)
 
         # Printing processes information that pertains to the current user only.
-        print(node.name + (str(node.used_cores) + "/" + str(node.total_cores)).rjust(int(TERMWIDTH/2)))
+        print(node.name + ("Cores: " + str(node.used_cores) + "/" + str(node.total_cores)).rjust(int(TERMWIDTH/2)))
         print('-'.center(TERMWIDTH,"-"))
         print('PID'.center(10, ' ') + 'ProcName'.center(20, ' ') + 'Memory Used'.center(20) + 'CPU%'.center(10) + 'TIME'.center(16))
         for proc in user_proc_list:
@@ -809,6 +809,23 @@ def print_detailed_user(node_list, pending_list, user_name):
             print(job)
     sys.exit()
 #^----------------------------------------------------------------------------- print_detailed_user(. . .)
+
+def cleanMem(badMem):
+    """Function which accepts a string which is the memory of a process from top. These are in KB or in t for terabyte.
+    These will be transformed into human readable memory untis like MB and GB to easily understand them. Returns:
+    a string which holds the human readable memory amount."""
+
+    if len(badMem) > 3 and len(badMem) <= 6 and ('t' not in badMem):
+        return (str( float(badMem) / 1000.0) + ' MB') # Moving decimal point over 3 times and adding MB
+    elif len(badMem) > 6 and ('t' not in badMem ):
+        return (str( float(badMem) /100000.0) + ' GB')
+    elif 't' in badMem:
+        badMem = badMem.replace('t','') # removing the t from terabyte
+        return (str(float(badMem)*1000) + ' GB')
+    else:
+        # The true usagem must be in KB, so add that
+        return badMem + ' KB'
+
 
 def print_short_user(node_list, pending_list, user_name):
     """Prints a short version of the user details: the node the user is running on with their jobs, and the
