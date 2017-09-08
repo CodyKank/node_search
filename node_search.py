@@ -138,7 +138,7 @@ class Node:
 #^--------------------------------------------------------- class Node
 
 class User:
-    """Class to hold representation of a user in a specific queue for the CRC at Notre Dame."""
+    """Class to hold representation of a user recognized by UGE."""
     
     def __init__(self, name, jobs=[],cores_used=0):
         """Default instantiation for a user. Only need the name, everything else defaults
@@ -169,7 +169,7 @@ class User:
     
     def update_cores(self):
         """Method to update the total number of cores a user has allocated to them, by checking the cores
-        used in their job list. So this should nbe run once completed adding all of the user's jobs."""
+        used in their job list. So this should be run once completed adding all of the user's jobs."""
         num_cores = 0
         for job in self.job_list:
             num_cores += int(job.get_core_info())
@@ -527,6 +527,7 @@ def process_host(desired_host):
 
 def getAllMachines():
     """Function to get all of the machines UGE can find and return a list of them as strings.
+    This takes into account duplicate machines. Will not count machines counted in previous HG's.
     Returns: List of strings."""
 
     validHosts = (subprocess.getoutput("qconf -shgrpl").split())
