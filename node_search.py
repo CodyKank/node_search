@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, subprocess
+import sys, subprocess, urllib.request
 
-"""Script to get and report information on nodes withtin the Sun Grid Engine for the CRC at Notre Dame. It uses
+"""Script to get and report information on nodes withtin the Sun Grid Engine for the CRC. It uses
 the subprocess module to execute bash(tcsh) commands and gather their output. Basically this script is a fancy
 swiss army knife parsing tool. Currently works with python 3.4.0 and 3.6.0. Created July 2016.
 Issues or bugs contact: ckankel@nd.edu
@@ -17,7 +17,7 @@ Purposely used exit codes:
 """
 
 class Node:
-    """Class to hold representation of a node for the CRC at Notre Dame
+    """Class to hold representation of a node for the CRC 
     Note: Python doesn't have private data, but the direct variables of
     this class are treated as private, and as such there are methods created
     to obtain them."""
@@ -188,7 +188,7 @@ class User:
 #^--------------------------------------------------------- class User
 
 class Job:
-    """Class to hold representation of a job in a specific node for the CRC at Notre Dame."""
+    """Class to hold representation of a job in a specific node for the CRC."""
     
     def __init__(self, name, user, cores=0):
         """Default instantiation for a Job. Only need the name, and user everything else defaults
@@ -706,6 +706,15 @@ def process_user(user_name):
         temp_node.set_total_mem(total_mem)
         temp_node.set_used_mem(used_mem)
         temp_node.set_free_mem(free_mem)
+        # Obtaining machines's memory information from Xymon's page for this particular node. 
+        #full_page = urllib.request.urlopen("https://mon.crc.nd.edu/xymon-cgi/svcstatus.sh?HOST={0}.crc.nd.edu&SERVICE=memory".format(temp_node))
+        #mybytes = full_page.read()
+        #page_str = mybytes.decode("utf8") # Made the entire html page into one string!
+        #full_page.close()
+
+        #del mybytes  # No Longer need these, lets conserve some memory if possible
+        #del full_page
+
         
         # In qstat -F, qf:min_cpu . . . . is the last item before the jobs are listed, 
         # 28 is how many char's that string is (don't want it)
@@ -761,14 +770,34 @@ def print_detailed_user(node_list, pending_list, user_name):
     print("=".ljust(TERMWIDTH - 1) + "=")
     print("=".center(TERMWIDTH, '=') + "\n")
 
+    # Getting every process of the user to print
     for node in node_list:
+        user_proc_list = []
+        cleanName = str(node).replace('long@','').replace('debug@','').replace('.crc.nd.edu','')
+        full_page = urllib.request.urlopen("https://mon.crc.nd.edu/xymon-cgi/svcstatus.sh?HOST={0}.crc.nd.edu&SERVICE=cpu".format(cleanName))
+        mybytes = full_page.read() # getting all html into a byte-list
+        pageStr = mybytes.decode("utf8") # Now the html is in a string
+        full_page.close()
+        del mybytes #releasing these
+        del full_page
+        # Each line below will be a line in Top for processes
+        for line in pageStr.split('\n'):
+            if user_name in line:
+                tmp_user_list = {}
+                lineSplit = line.split()
+                tmp_user_list["PID"] = lineSplit[0]
+                tmp_user_list["RESMEM"] = lineSplit[5]
+                tmp_user_list["CPU%"] = lineSplit[8]
+                tmp_user_list["TIME"] = lineSplit[10]
+                tmp_user_list["PNAME"] = lineSplit[11]
+                user_proc_list.append(tmp_user_list)
+
+        # Printing processes information that pertains to the current user only.
         print(node.name + (str(node.used_cores) + "/" + str(node.total_cores)).rjust(int(TERMWIDTH/2)))
         print('-'.center(TERMWIDTH,"-"))
-        print("JobID".ljust(10) + "JobName".ljust(20) + "User".ljust(20) + "MaxVmem".ljust(20) + \
-              "Cores".ljust(10))
-        for job in node.job_list:
-            print(job.id.ljust(10) + job.name.ljust(20) + job.user.ljust(20) + job.max_mem.ljust(20) + \
-                  job.cores.ljust(10))
+        print('PID'.center(10, ' ') + 'ProcName'.center(20, ' ') + 'Memory Used'.center(20) + 'CPU%'.center(10) + 'TIME'.center(16))
+        for proc in user_proc_list:
+            print(proc['PID'].center(10) + proc['PNAME'].center(20) + proc['RESMEM'].center(20) + proc['CPU%'].center(10) + proc['TIME'].center(16))
                 
         print('') # Simple newline
 
