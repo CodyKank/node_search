@@ -236,6 +236,14 @@ class Job:
         """Method to get job id of a job"""
         return self.id
     
+    def get_start_time(self):
+        """Function to obtain the start time of a running job. Will leverage qstat's -j flag."""
+        # Searching through qstat and grabbing only the start time. Lot of weeding out.
+        qstat = subprocess.getoutput("qstat -j {0}".format(self.id))
+        qstat = qstat[qstat.find("start_time"):]
+        qstat = qstat[:qstat.find('\n')]
+        return qstat[28:]
+    
     def find_max_mem(self):
         """Function that will find this job's maximum used memory (RAM) by parsing
         through qstat -j <job_id>. The function will set this Job object's max_mem
@@ -681,6 +689,9 @@ def process_user(user_name):
                 node_list.append(node)
     
     final_list = []
+        
+    numU_jobs = 0 # Will hold the number of jobs attributed to the specified user
+    numU_cores = 0 # The number of cores the user is currently using. Starts at 0 and counts up as jobs encountered.
     
     for host in node_list:
         # Grabbing the node's name in qstat and making a Node() instance of it
@@ -732,6 +743,9 @@ def process_user(user_name):
                 temp_job.set_id(info[0])
                 temp_job.set_priority(info[1])
                 temp_node.add_job(temp_job)
+                if info[3] == user_name:
+                    numU_jobs += 1 #info[3] is the user-name of job, if == spec. user, increment user_jobs
+                    numU_cores += int(info[7]) # info[7] is the number of cores occupied by the user's job
         
         final_list.append(temp_node)
     
@@ -745,17 +759,17 @@ def process_user(user_name):
          
     if len(sys.argv) == 4:
         if sys.argv[3] == '--details':
-            print_detailed_user(final_list, pending_list, user_name)
+            print_detailed_user(final_list, pending_list, user_name, numU_jobs, numU_cores)
         else:
             print('Error: Arg syntax error with: ' + sys.argv[3])
             show_usage(23)
     else:
-        print_short_user(final_list, pending_list, user_name)
+        print_short_user(final_list, pending_list, user_name, numU_jobs, numU_cores)
 #^----------------------------------------------------------------------------- process_user(user_name)
  
-def print_detailed_user(node_list, pending_list, user_name):
-    """Prints detailed version, as in all of the nodes the specified user's jobs are on along with other
-    users' jobs which are running on that node. Will also print all of user's pending jobs(if any).
+def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores):
+    """Prints detailed version, as in all of the nodes the specified user's jobs are in along with the 
+    processes spawned that are owned by the specified user. Will also print all of user's pending jobs(if any).
     Upon completion, will exit."""
     
     user_pend = []
@@ -792,8 +806,8 @@ def print_detailed_user(node_list, pending_list, user_name):
                 tmp_user_list["PNAME"] = lineSplit[11]
                 user_proc_list.append(tmp_user_list)
 
-        # Printing processes information that pertains to the current user only.
-        print(node.name + ("Cores: " + str(node.used_cores) + "/" + str(node.total_cores)).rjust(int(TERMWIDTH/2)))
+        # Printing process information that pertains to the current user only.
+        print(cleanName + ("Cores Used / Total Cores : " + str(node.used_cores) + "/" + str(node.total_cores)).rjust(int(TERMWIDTH/2)))
         print('-'.center(TERMWIDTH,"-"))
         print('PID'.center(10, ' ') + 'ProcName'.center(20, ' ') + 'Memory Used'.center(20) + 'CPU%'.center(10) + 'TIME'.center(16))
         for proc in user_proc_list:
@@ -812,22 +826,24 @@ def print_detailed_user(node_list, pending_list, user_name):
 
 def cleanMem(badMem):
     """Function which accepts a string which is the memory of a process from top. These are in KB or in t for terabyte.
-    These will be transformed into human readable memory untis like MB and GB to easily understand them. Returns:
+    These will be transformed into human readable memory units like MB and GB to easily understand them. Returns:
     a string which holds the human readable memory amount."""
 
-    if len(badMem) > 3 and len(badMem) <= 6 and ('t' not in badMem):
+    if len(badMem) > 3 and len(badMem) <= 6 and ('t' not in badMem) and ('g' not in badMem):
         return (str( float(badMem) / 1000.0) + ' MB') # Moving decimal point over 3 times and adding MB
-    elif len(badMem) > 6 and ('t' not in badMem ):
+    elif len(badMem) > 6 and ('t' not in badMem ) and ('g' not in badMem):
         return (str( float(badMem) /100000.0) + ' GB')
     elif 't' in badMem:
         badMem = badMem.replace('t','') # removing the t from terabyte
         return (str(float(badMem)*1000) + ' GB')
+    elif 'g' in badMem:
+        return badMem.replace('g', 'GB')
     else:
-        # The true usagem must be in KB, so add that
+        # The true usage must be in KB, so add that
         return badMem + ' KB'
+#^----------------------------------------------------------------------------- cleanMem(string:badmem)
 
-
-def print_short_user(node_list, pending_list, user_name):
+def print_short_user(node_list, pending_list, user_name, user_jobs, num_cores):
     """Prints a short version of the user details: the node the user is running on with their jobs, and the
     user's pending jobs (if any)."""
     
@@ -838,7 +854,6 @@ def print_short_user(node_list, pending_list, user_name):
 
     job_count = 0
     print('Job information for {0}.'.format(user_name))
-    #using dicts just created for printing. Ugly code but decent results.  
     for node in node_list:
         print()
         print('Node name'.ljust(int(TERMWIDTH/2)) + 'Used Cores'.rjust(int(TERMWIDTH/4)) +
@@ -849,18 +864,19 @@ def print_short_user(node_list, pending_list, user_name):
               + '  ' + (str(node.get_total())).ljust(int(TERMWIDTH/4)))
         #print('_'.center(TERMWIDTH, '_'))
         
-        print('Job ID'.ljust(int(TERMWIDTH/4))
-              + 'Job Name'.ljust(int(TERMWIDTH/4))
-              + 'Num Cores'.ljust(int(TERMWIDTH/4-1))
-              + 'MAX Memory Used')
+        print('Job ID'.center(int(TERMWIDTH/4))
+              + 'Job Name'.center(int(TERMWIDTH/4))
+              + 'Num Cores'.center(int(9))
+              + 'Start Time'.center(int(TERMWIDTH/2) - 9))
         for job in node.get_job_list():
             this_nodeJobs = 0
             if user_name in job.get_user():
-                print(str(job.get_id()).ljust(int(TERMWIDTH/4))  \
-                    + job.get_name().ljust(int(TERMWIDTH/4)) +str(job.get_core_info()).ljust(int(TERMWIDTH/4))\
-                    + job.get_max_mem().ljust(int(TERMWIDTH/4)))
+                print(str(job.get_id()).center(int(TERMWIDTH/4))  \
+                    + job.get_name().center(int(TERMWIDTH/4)) +str(job.get_core_info()).center(int(9))\
+                    + job.get_start_time().center(int(TERMWIDTH/2) - 9))
                 job_count += 1
-    print("----\n{0}'s Total Running Jobs: {1}\n".format(user_name, str(job_count)))
+    print("----\n{0}'s Total Running Jobs: {1}".format(user_name, str(job_count)))
+    print("Total cores used: {0}\n".format(num_cores))
         
     if len(user_pend):
         print('\n' + '#'.center(TERMWIDTH, '#'))

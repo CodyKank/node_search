@@ -7,8 +7,7 @@
                                                                 | |     __/ |
                                                                 |_|    |___/ 
 -------------------------------------------------------------------------------
-* node-search.py started in late July/Early August 2016 by intern Cody Kankel for
-  the CRC.
+* node-search.py started in late July/Early August 2016.
 
 * node-search.py is a utility script, which can be seen as a swiss-army knife
   type of program for finding relevant information for the Univa Grid Engine.
