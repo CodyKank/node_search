@@ -545,16 +545,10 @@ def getAllMachines():
     for host in validHosts:
         hostMachineList = ((subprocess.getoutput("qconf -shgrp_tree " + str(host))).split())
         for element in hostMachineList:
-            if '@' in element: # If it is a HG name
-                if element not in processedHGList:
-                    processedHGList.append(element)
-                    readNodes = True # We haven't seen this HG yet, process the nodes
-                else: 
-                    readNodes = False # We've already seen this HG, don't process nodes
-            elif readNodes:
-                machineList.append(element)
-            else: # readNodes == False and '@' not in element(not HG), already counted this node!
-                continue # We've already seen this node within the hostgroup, don't count it.
+            if '@' not in element: # If it is not a HG name
+                if element not in machineList:
+                    machineList.append(element) # Searching whole list for this node
+    machineList.sort()
     return machineList
 #^----------------------------------------------------------------------------- getAllMachines()
 
