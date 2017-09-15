@@ -685,7 +685,8 @@ def process_user(user_name):
                     # This means its the last node. We must only accept up tp the pending jobs ONLY. Below we are doing that and taking out an
                     # Additional newline by stripping it but adding one back in to keep formatting correct. (there were two instead of one).
                     tempNode = (node[:node.find(pending_search)].rstrip())+'\n'
-                    node_list.append(tempNode)
+                    if user_name in tempNode:
+                        node_list.append(tempNode)
                 pending_jobs += (node[node.find(pending_search):]) #reaping pending jobs
             else:
                 node_list.append(node)
@@ -708,27 +709,6 @@ def process_user(user_name):
             temp_node.set_disabled_switch(False)
             
         temp_node.set_cores(host_total_cores, host_used_cores)
-        # Reaping the info we want from qstat -F divided up by lines with each node.
-        # so [25] is line 25 down from the start of that node which contains total_mem
-        """total_mem = host.split('\n')[25]
-        total_mem = total_mem[total_mem.find('=') +1 :]
-        used_mem = host.split('\n')[26]
-        used_mem = used_mem[used_mem.find('=') +1 :]
-        free_mem = host.split('\n')[27]
-        free_mem = free_mem[free_mem.find('=') + 1 :]
-        temp_node.set_total_mem(total_mem)
-        temp_node.set_used_mem(used_mem)
-        temp_node.set_free_mem(free_mem)"""
-        # Obtaining machines's memory information from Xymon's page for this particular node. 
-        #full_page = urllib.request.urlopen("https://mon.crc.nd.edu/xymon-cgi/svcstatus.sh?HOST={0}.crc.nd.edu&SERVICE=memory".format(temp_node))
-        #mybytes = full_page.read()
-        #page_str = mybytes.decode("utf8") # Made the entire html page into one string!
-        #full_page.close()
-
-        #del mybytes  # No Longer need these, lets conserve some memory if possible
-        #del full_page
-
-        
         # In qstat -F, qf:min_cpu . . . . is the last item before the jobs are listed, 
         # 28 is how many char's that string is (don't want it)
         node_stat= host[host.find('qf:min_cpu_interval=00:05:00') + 28\
@@ -783,11 +763,12 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
     
     print("=".center(TERMWIDTH,"="))
     print("=".ljust(TERMWIDTH - 1) + "=")
-    print("=" + ("Detailed Node information for jobs corresponding to {0}."\
+    print("=" + ("Detailed Job information for {0}."\
                 .format(user_name)).center(TERMWIDTH - 2) + "=")
     print("=".ljust(TERMWIDTH - 1) + "=")
     print("=".center(TERMWIDTH, '=') + "\n")
 
+    print("{0}'s total number of running jobs: {1}\n".format(user_name, user_jobs))
     # Getting every process of the user to print
     for node in node_list:
         user_proc_list = []
@@ -799,6 +780,7 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
         del mybytes #releasing these
         del full_page
         # Each line below will be a line in Top for processes
+        userNodeMem = [] # List to hold the different amounts of memory a user is using on this node!
         for line in pageStr.split('\n'):
             if user_name in line:
                 tmp_user_list = {}
@@ -809,6 +791,11 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
                 tmp_user_list["TIME"] = lineSplit[10]
                 tmp_user_list["PNAME"] = lineSplit[11]
                 user_proc_list.append(tmp_user_list)
+                if ('t' in lineSplit[5])  or ('g' in lineSplit[5]): # this is what contains the amount of resident memory
+                    userNodeMem.append(toKB(lineSplit[5]))
+                else:
+                    userNodeMem.append(lineSplit[5]) # we want it in KB to add up after finished running through node
+
 
         # Printing process information that pertains to the current user only.
         print(cleanName + ("Cores Used / Total Cores : " + str(node.used_cores) + "/" + str(node.total_cores)).rjust(int(TERMWIDTH/2)))
@@ -816,6 +803,10 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
         print('PID'.center(10, ' ') + 'ProcName'.center(20, ' ') + 'Memory Used'.center(20) + 'CPU%'.center(10) + 'TIME'.center(16))
         for proc in user_proc_list:
             print(proc['PID'].center(10) + proc['PNAME'].center(20) + proc['RESMEM'].center(20) + proc['CPU%'].center(10) + proc['TIME'].center(16))
+        userTotalMem = 0
+        for mem in userNodeMem:
+            userTotalMem += int(mem)  
+        print("User's total memory usage on Node: {0}".format(cleanMem(str(userTotalMem))))
                 
         print('') # Simple newline
 
@@ -828,6 +819,25 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
     sys.exit()
 #^----------------------------------------------------------------------------- print_detailed_user(. . .)
 
+def toKB(badMem):
+    """Function which accepts a string representing resident memory from top off of a node. badMem will contain
+    either a t for terabytes or a g for gigabytes. These will be translated into KB and returned so the total
+    amount of memory can be calculated for a user on a node."""
+
+    if 't' in badMem:
+        badMem = badMem.replace('t','')
+        badMem = float(badMem) * 1000000000
+        return badMem
+    elif 'g' in badMem:
+        badMem = badMem.replace('g','')
+        badMem = float(badMem) * 1000000
+        return badMem
+    else:
+        # Error???
+        print("\nERROR: Cannot determine memory in function badMem with memory of: {0}\nExiting....\n".format(badMem))
+        sys.exit()
+#^----------------------------------------------------------------------------- toKB(badMem)
+
 def cleanMem(badMem):
     """Function which accepts a string which is the memory of a process from top. These are in KB or in t for terabyte.
     These will be transformed into human readable memory units like MB and GB to easily understand them. Returns:
@@ -836,7 +846,7 @@ def cleanMem(badMem):
     if len(badMem) > 3 and len(badMem) <= 6 and ('t' not in badMem) and ('g' not in badMem):
         return (str( float(badMem) / 1000.0) + ' MB') # Moving decimal point over 3 times and adding MB
     elif len(badMem) > 6 and ('t' not in badMem ) and ('g' not in badMem):
-        return (str( float(badMem) /100000.0) + ' GB')
+        return (str( float(badMem) /1000000.0) + ' GB')
     elif 't' in badMem:
         badMem = badMem.replace('t','') # removing the t from terabyte
         return (str(float(badMem)*1000) + ' GB')
@@ -857,17 +867,35 @@ def print_short_user(node_list, pending_list, user_name, user_jobs, num_cores):
             user_pend.append(pending_list[j])
 
     job_count = 0
-    print('Job information for {0}.'.format(user_name))
+    print("=".center(TERMWIDTH,"="))
+    print("=".ljust(TERMWIDTH - 1) + "=")
+    print("=" + ("Job information for {0}."\
+                .format(user_name)).center(TERMWIDTH - 2) + "=")
+    print("=".ljust(TERMWIDTH - 1) + "=")
+    print("=".center(TERMWIDTH, '=') + "\n")
     for node in node_list:
         print()
-        print('Node name'.ljust(int(TERMWIDTH/2)) + 'Used Cores'.rjust(int(TERMWIDTH/4)) +
-              '  Total Cores'.ljust(int(TERMWIDTH/4)))
+        user_proc_list = []
+        cleanName = str(node).replace('long@','').replace('debug@','').replace('.crc.nd.edu','').replace('gpu@','').replace('gpu-debug@','')
+        full_page = urllib.request.urlopen("https://mon.crc.nd.edu/xymon-cgi/svcstatus.sh?HOST={0}.crc.nd.edu&SERVICE=cpu".format(cleanName))
+        mybytes = full_page.read() # getting all html into a byte-list
+        pageStr = mybytes.decode("utf8") # Now the html is in a string
+        full_page.close()
+        del mybytes #releasing these
+        del full_page
+        # Each line below will be a line in Top for processes
+        userNodeMem = [] # List to hold the different amounts of memory a user is using on this node!
+        for line in pageStr.split('\n'):
+            if user_name in line:
+                lineSplit = line.split()
+                if ('t' in lineSplit[5])  or ('g' in lineSplit[5]): # this is what contains the amount of resident memory
+                    userNodeMem.append(toKB(lineSplit[5]))
+                else:
+                    userNodeMem.append(lineSplit[5]) # we want it in KB to add up after finished running through node
+
+        print(node.get_name().ljust(int(TERMWIDTH/2)) + ('Core Usage: ' + (str(node.get_used())) + '/' + (str(node.get_total()))).rjust(int(TERMWIDTH/2)))
         print('-'.center(int(TERMWIDTH) -1, '-')) #Creating line of separation
-        print(node.get_name().ljust(int(TERMWIDTH/2)) +
-              ((str(node.get_used())).rjust(int(TERMWIDTH/4)))
-              + '  ' + (str(node.get_total())).ljust(int(TERMWIDTH/4)))
-        #print('_'.center(TERMWIDTH, '_'))
-        
+
         print('Job ID'.center(int(TERMWIDTH/4))
               + 'Job Name'.center(int(TERMWIDTH/4))
               + 'Num Cores'.center(int(9))
@@ -879,6 +907,11 @@ def print_short_user(node_list, pending_list, user_name, user_jobs, num_cores):
                     + job.get_name().center(int(TERMWIDTH/4)) +str(job.get_core_info()).center(int(9))\
                     + job.get_start_time().center(int(TERMWIDTH/2) - 9))
                 job_count += 1
+
+        userTotalMem = 0
+        for mem in userNodeMem:
+            userTotalMem += int(mem)  
+        print("User's total memory usage on Node: {0}\n".format(cleanMem(str(userTotalMem))))
     print("----\n{0}'s Total Running Jobs: {1}".format(user_name, str(job_count)))
     print("Total cores used: {0}\n".format(num_cores))
         
