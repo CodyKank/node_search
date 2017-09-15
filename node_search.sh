@@ -4,6 +4,8 @@
 # without having to 'module load python/3.x.x' Then, it is running the node_search.py script.
 # Please read that script or view the man page for more information on what that script does.
 
+#ckankel --> This is who to bug about this
+
 # NOTE: These requirements will change when there is a new version of Python3 installed. To update
 # simply look at what is loaded in your env when you have the latest python3 module loaded for the
 # following variables:

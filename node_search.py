@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from pwd import getpwnam
 import sys, subprocess, urllib.request
 
 """Script to get and report information on nodes withtin the Sun Grid Engine for the CRC. It uses
@@ -377,6 +378,12 @@ def find_host_groups(user_name, detail_switch):
     and method will send needed info to the respective printing functions depending if it is
     a detailed print or not. Program exits after executing this method."""
     
+    try:
+        user_pwd = getpwnam(user_name)
+    except KeyError:
+        print("Error: User {0} is not recognized.".format(user_name))
+        sys.exit(25)
+
     all_user_lists = subprocess.getoutput("qconf -sul").split('\n')
     
     user_list = []
@@ -664,9 +671,10 @@ def process_user(user_name):
     """Function to process the username given after -u option. Will find information pertaining to the specified
     user and send them to the printing function."""
     
-    user_list = subprocess.getoutput("qconf -suserl")
-    if str(user_name) not in user_list:
-        print('Error: User, ' + user_name + ' is currently not logged on or does not exist.')
+    try:
+        user_pwd = getpwnam(user_name)
+    except KeyError:
+        print('Error: User {0} is not recognized.'.format(user_name))
         sys.exit(25)
     
     qstat = subprocess.getoutput("qstat -f").split('-'.center(81, '-')) #81 -'s
