@@ -10,10 +10,11 @@
 * node-search.py started in late July/Early August 2016.
 
 * node-search.py is a utility script, which can be seen as a swiss-army knife
-  type of program for finding relevant information for the Univa Grid Engine.
+  type of program for finding relevant information for the Univa Grid Engine(UGE) /
+  Sun Grid Engine (SGE).
 
 * How Does it work:
-    node-search.py is a python 3 script, which is placed in the afs space
+    node-search.py is a python 3 script, which is placed in the AFS space
     currently, and it uses the subprocess module to spawn new subprocesses
     which are usually running qstat or qconf and gather their output back into
     the python script which will then parse that output depending on what its
@@ -31,7 +32,8 @@
   pain to have to load the python 3 module everytime you wanted check the 
   status of a job, so this bash script sets up the environment temporarily
   to run Python 3 scripts. The only configuration needed with this is to
-  properly specifiy the full path for the actual python 3 script.
+  properly specifiy the full path for the actual python 3 script and to edit the
+  paths for the useful module information to properly grab a version of Python 3.
 
 * If you are not a member of CRC and are using the UGE and want to use
   this, you may need to play around with trial and error, as there may be 
@@ -46,7 +48,7 @@
 
 * This script is assuming (1) Python 3 is installed, tested with python 3.6.0 and 3.4.0,
   (2) the subprocess module is installed [should be by default], and (3) you
-  have qconf and qstat working and configured.
+  have qconf, qstat, and xymon working and configured.
 
 * To do:
   Add jobs to Host groups --details output

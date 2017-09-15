@@ -675,15 +675,23 @@ def process_user(user_name):
         print('Error: User, ' + user_name + ' is currently not logged on or does not exist.')
         sys.exit(25)
     
-    qstat = subprocess.getoutput("qstat -F").split('-'.center(81, '-')) #81 -'s
+    qstat = subprocess.getoutput("qstat -f").split('-'.center(81, '-')) #81 -'s
     
     node_list = []
     pending_jobs = ''
-    pending_search = '#'.center(79, '#') #denotes pending jobs in qstats 79 #'s
+    pending_search = '#'.center(79, '#') #denotes pending jobs in qstat 79 #'s
     #Weeding out nonessential nodes
     for node in qstat:
+        #if 'gpu' in node:
+        #    if 'qa-titanx-001' in node:
+        #        blah = 0
         if user_name in (node.split()):
-            if pending_search in node.split(): #Taking pending jobs out
+            if pending_search in node: #Taking pending jobs out
+                if ".crc.nd.edu" in node:
+                    # This means its the last node. We must only accept up tp the pending jobs ONLY. Below we are doing that and taking out an
+                    # Additional newline by stripping it but adding one back in to keep formatting correct. (there were two instead of one).
+                    tempNode = (node[:node.find(pending_search)].rstrip())+'\n'
+                    node_list.append(tempNode)
                 pending_jobs += (node[node.find(pending_search):]) #reaping pending jobs
             else:
                 node_list.append(node)
@@ -708,7 +716,7 @@ def process_user(user_name):
         temp_node.set_cores(host_total_cores, host_used_cores)
         # Reaping the info we want from qstat -F divided up by lines with each node.
         # so [25] is line 25 down from the start of that node which contains total_mem
-        total_mem = host.split('\n')[25]
+        """total_mem = host.split('\n')[25]
         total_mem = total_mem[total_mem.find('=') +1 :]
         used_mem = host.split('\n')[26]
         used_mem = used_mem[used_mem.find('=') +1 :]
@@ -716,7 +724,7 @@ def process_user(user_name):
         free_mem = free_mem[free_mem.find('=') + 1 :]
         temp_node.set_total_mem(total_mem)
         temp_node.set_used_mem(used_mem)
-        temp_node.set_free_mem(free_mem)
+        temp_node.set_free_mem(free_mem)"""
         # Obtaining machines's memory information from Xymon's page for this particular node. 
         #full_page = urllib.request.urlopen("https://mon.crc.nd.edu/xymon-cgi/svcstatus.sh?HOST={0}.crc.nd.edu&SERVICE=memory".format(temp_node))
         #mybytes = full_page.read()
@@ -731,6 +739,8 @@ def process_user(user_name):
         # 28 is how many char's that string is (don't want it)
         node_stat= host[host.find('qf:min_cpu_interval=00:05:00') + 28\
                              :host.find('\n---------------------------------------------------------------------------------\n')]
+        """Possibly do a host.split('\n') and join the rest of 2 - end"""
+
         # There is always an extra '\n' in here, so subtract 1 to get rid of it
         num_jobs = len(node_stat.split('\n')) -1
         # If there are any jobs, parse them and gather info
@@ -787,7 +797,7 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
     # Getting every process of the user to print
     for node in node_list:
         user_proc_list = []
-        cleanName = str(node).replace('long@','').replace('debug@','').replace('.crc.nd.edu','')
+        cleanName = str(node).replace('long@','').replace('debug@','').replace('.crc.nd.edu','').replace('gpu','').replace('gpu-debug','')
         full_page = urllib.request.urlopen("https://mon.crc.nd.edu/xymon-cgi/svcstatus.sh?HOST={0}.crc.nd.edu&SERVICE=cpu".format(cleanName))
         mybytes = full_page.read() # getting all html into a byte-list
         pageStr = mybytes.decode("utf8") # Now the html is in a string
