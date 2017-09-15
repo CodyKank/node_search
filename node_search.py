@@ -797,7 +797,7 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
     # Getting every process of the user to print
     for node in node_list:
         user_proc_list = []
-        cleanName = str(node).replace('long@','').replace('debug@','').replace('.crc.nd.edu','').replace('gpu','').replace('gpu-debug','')
+        cleanName = str(node).replace('long@','').replace('debug@','').replace('.crc.nd.edu','').replace('gpu@','').replace('gpu-debug@','')
         full_page = urllib.request.urlopen("https://mon.crc.nd.edu/xymon-cgi/svcstatus.sh?HOST={0}.crc.nd.edu&SERVICE=cpu".format(cleanName))
         mybytes = full_page.read() # getting all html into a byte-list
         pageStr = mybytes.decode("utf8") # Now the html is in a string
