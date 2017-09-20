@@ -771,12 +771,12 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
     
     print("=".center(TERMWIDTH,"="))
     print("=".ljust(TERMWIDTH - 1) + "=")
-    print("=" + ("Detailed Job information for {0}."\
+    print("=" + ("Detailed Process information for {0}."\
                 .format(user_name)).center(TERMWIDTH - 2) + "=")
     print("=".ljust(TERMWIDTH - 1) + "=")
     print("=".center(TERMWIDTH, '=') + "\n")
 
-    print("{0}'s total number of running jobs: {1}\n".format(user_name, user_jobs))
+    print("{0}'s total number of running jobs on UGE: {1}\n".format(user_name, user_jobs))
     # Getting every process of the user to print
     for node in node_list:
         user_proc_list = []
@@ -815,6 +815,7 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
         for mem in userNodeMem:
             userTotalMem += int(mem)  
         print("User's total memory usage on Node: {0}".format(cleanMem(str(userTotalMem))))
+        print("Total number of processes owned by user on Node: {0}".format(str(len(user_proc_list))))
                 
         print('') # Simple newline
 
