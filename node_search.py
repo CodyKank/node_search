@@ -649,11 +649,11 @@ def print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_h
     print('-'.center(60, '-'))
     print('Total Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores).ljust(int(TERMWIDTH/2)))
     print('Used Cores:'.ljust(int(TERMWIDTH/2)) + str(used_cores).ljust(int(TERMWIDTH/2)))
-    print('Free Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores - used_cores).ljust(int(TERMWIDTH/2)))
+    print('Free Cores:'.ljust(int(TERMWIDTH/2)) + str(total_cores - used_cores - disabled_cores).ljust(int(TERMWIDTH/2)))
     print('Disabled/Error Cores:'.ljust(int(TERMWIDTH/2)) + str(disabled_cores).ljust(int(TERMWIDTH/2)))
     print("")
     print('Total Nodes:'.ljust(int(TERMWIDTH/2)) + str(total_nodes).ljust(int(TERMWIDTH/2)))
-    print('Used Nodes:'.ljust(int(TERMWIDTH/2)) + str(total_nodes - empty_nodes).ljust(int(TERMWIDTH/2)))
+    print('Used Nodes:'.ljust(int(TERMWIDTH/2)) + str(total_nodes - empty_nodes - disabled_nodes).ljust(int(TERMWIDTH/2)))
     print('Disabled/Error Nodes:'.ljust(int(TERMWIDTH/2)) + str(disabled_nodes).ljust(int(TERMWIDTH/2)))
     print('Empty Nodes:'.ljust(int(TERMWIDTH/2)) + str(empty_nodes).ljust(int(TERMWIDTH/2)))
     return

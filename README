@@ -35,12 +35,9 @@
   properly specifiy the full path for the actual python 3 script and to edit the
   paths for the useful module information to properly grab a version of Python 3.
 
-* If you are not a member of CRC and are using the UGE and want to use
-  this, you may need to play around with trial and error, as there may be 
-  CRC specific items sprinkled around in the code. As far as I can tell, if you
-  have qconf, qstat, and the UGE you should in theory be good to go. All you'd
-  have to do is change around the names of the general_access/debug queues in the python
-  script to what your needs are.
+* node_search was developed for a specific environment. If you are attempting to 
+  use it for your own organization, there may be a few hiccups. In theory, as long
+  as a system has UGE, qstat, qconf, and xymon, node_search should work.
 
 * node-search.py will search through information gathered from qstat and other tools 
   about the UGE environment, including information about nodes, users, user-lists, host-
@@ -52,6 +49,5 @@
 
 * To do:
   Add jobs to Host groups --details output
-  Make pending_jobs OO. 
   Make --stats option for total core usage. Possible a --report also, for total number
   of jobs, users, utilization, % nodes down, etc.
