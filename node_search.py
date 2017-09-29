@@ -3,6 +3,14 @@
 from pwd import getpwnam
 import sys, subprocess, urllib.request
 
+#Globals
+TERMWIDTH = 80
+PRINT_INDENT = '    ' #4 spaces, used for formatting.
+DEBUG_QUEUE_HOSTGROUP = 'debug_d12chas'
+GENERAL_ACCESS_QUEUE_HOSTGROUP = 'general_access'
+SCRIPT_NAME = 'node_search.sh'
+LOWTHRESHOLD = 0.05
+
 """Script to get and report information on nodes withtin the Sun Grid Engine for the CRC. It uses
 the subprocess module to execute bash(tcsh) commands and gather their output. Basically this script is a fancy
 swiss army knife parsing tool. Currently works with python 3.4.0 and 3.6.0. Created July 2016.
@@ -32,7 +40,7 @@ class Node:
         self.free_cores = (int(self.total_cores) - int(self.used_cores))
         self.disabled = disabled
         self.num_jobs = 0
-        self.load = 0
+        self.load = None
         self.job_list = []
         
     def __repr__(self):
@@ -295,12 +303,6 @@ class Pending(Job):
         return self.date
 #^--------------------------------------------------------- class Pending(Job)
 
-#Globals
-TERMWIDTH = 80
-PRINT_INDENT = '    ' #4 spaces, used for formatting.
-DEBUG_QUEUE_HOSTGROUP = 'debug_d12chas'
-GENERAL_ACCESS_QUEUE_HOSTGROUP = 'general_access'
-SCRIPT_NAME = 'node_search.sh'
 
 def main():
     """Main will parse through cmdline args, and give the result to the proper function. The debug
@@ -346,6 +348,12 @@ def main():
             show_usage(20)
         else:   
             show_users()
+    elif sys.argv[1] == '--low_efficiency' or sys.argv[1] == '-l_e':
+        if len(sys.argv) > 2:
+            print('Error: Too many args.')
+            show_usage(20)
+        else:
+            show_efficiency()
     elif '-' not in sys.argv[1]:
         print("Error: Incorrect arg ussage")
         show_usage(23)
@@ -540,6 +548,79 @@ def process_host(desired_host):
     return
 #^----------------------------------------------------------------------------- process_host(desired_host)    
 
+def show_efficiency():
+    """Function to find and show machines with low efficiency. Low efficiency is described as
+    a machine where all or most of the cores are being used by UGE (not ocndor) jobs, but the CPU usage is very
+    low."""
+
+    machineList = getAllMachines() # obtaining all nodes from UGE into a list.
+
+    macString = machineList[0].replace('.crc.nd.edu','') # priming the machine list.
+    for mac in machineList[1:]: # Going through all but the first machine in machineList
+        mac = mac.replace('.crc.nd.edu','')
+        macString += ("," + mac) # Making the string comma separated
+    qh = subprocess.getoutput('qhost -h {0}'.format(macString))
+
+    qstat = subprocess.getoutput('qstat -f').split('-'.center(81, '-')) #81 -'s, grabbing results of qstat to wade through
+    pending_search = '#'.center(79, '#') #denotes pending jobs in qstat 79 #'s
+
+    lowEffNodes = []
+    for node in qh.split('\n')[3:]: # Skipping lines that aren't nodes
+        ns = node.split()
+        if ns[6] != '-' and float(ns[6]) < LOWTHRESHOLD : # Not including machines that are turned off
+            #lowUsageNodes.append({'NAME': ns[0], "LOAD": ns[6]}) #appending the string name of the nodes with low CPU usage
+            for nd in qstat:
+                if ns[0] in nd: # ns[0] == name of node
+                    if pending_search in nd: #Taking pending jobs out
+                        if ".crc.nd.edu" in nd:
+                            # Reap out the node text before the pending search and keep it as a node, ditch the rest of pending jobs
+                            continue
+                        else:
+                            # ignore it
+                            continue
+                    cores = nd.split()[2][nd.split()[2].find('/')+1:]
+                    usedCores = cores[:cores.find('/')]
+                    totalCores = cores[cores.find('/')+1:]
+                    if usedCores != totalCores:
+                        continue
+                    else:
+                        splitNode = nd.lstrip().split('\n') # We want one more value than there really is for the for loop to work easily
+                        tempNode = Node(splitNode[0].split()[0].replace('long@','').replace('gpu-debug@','')\
+                                .replace('debug@','').replace('gpu@','').replace('.crc.nd.edu',''),
+                                totalCores,usedCores, False) # Creating node for this low efficiency node
+                        tempNode.set_load(ns[6])
+                        num_jobs = len(splitNode) -1
+                        for x in range(1, num_jobs):
+                            jobSplit = splitNode[x].split() # splitting the job itself into a list to easily grab what we need
+                            tempJob = Job(jobSplit[2], jobSplit[3], jobSplit[7]) # Creating a Job to be added.
+                            tempJob.set_id(jobSplit[0])
+                            tempNode.add_job(tempJob) # appending this job to the node's jobList
+
+                        lowEffNodes.append(tempNode) # adding the tempNode to the final list of low_efficiency nodes
+
+
+    # Printing the header
+    print("=".center(80,'='))
+    print('=' + '='.rjust(79,' '))
+    print('=' + "Low Efficiency Nodes".center(78, " ") + '=')
+    print('=' + '='.rjust(79,' '))
+    print('='.center(80,'='))
+    print("HOSTNAME".ljust(15,' ') + "CPU LOAD".center(15, " "))
+    print("    " + "Job ID".ljust(15,' ') + "User".ljust(15,' ') + "Job Name\n")
+
+    # Printing the nodes along with the jobs on those nodes
+    for node in lowEffNodes:
+        if node.num_jobs >= 1:
+            print(node.name.ljust(15,' ') +  node.load.center(15, " "))
+            for job in node.get_job_list():
+                print("    " + job.id.ljust(15,' ') + job.user.ljust(15, ' ') + job.name)
+        print('-'.center(40,'-'))
+
+    #print(qh.split('\n')[2:])
+
+    sys.exit(0)
+#^---------------------------------------------------------------------------- show_efficiency(...)
+
 def getAllMachines():
     """Function to get all of the machines UGE can find and return a list of them as strings.
     This takes into account duplicate machines. Will not count machines counted in previous HG's.
@@ -684,9 +765,6 @@ def process_user(user_name):
     pending_search = '#'.center(79, '#') #denotes pending jobs in qstat 79 #'s
     #Weeding out nonessential nodes
     for node in qstat:
-        #if 'gpu' in node:
-        #    if 'qa-titanx-001' in node:
-        #        blah = 0
         if user_name in (node.split()):
             if pending_search in node: #Taking pending jobs out
                 if ".crc.nd.edu" in node:
