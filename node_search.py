@@ -908,7 +908,7 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
 
 def toKB(badMem):
     """Function which accepts a string representing resident memory from top off of a node. badMem will contain
-    either a t for terabytes or a g for gigabytes. These will be translated into KB and returned so the total
+    a t for terabytes, m for megabytes, or a g for gigabytes. These will be translated into KB and returned so the total
     amount of memory can be calculated for a user on a node."""
 
     if 't' in badMem:
@@ -918,6 +918,10 @@ def toKB(badMem):
     elif 'g' in badMem:
         badMem = badMem.replace('g','')
         badMem = float(badMem) * 1000000
+        return badMem
+    elif 'm' in badMem:
+        badMem = badMem.replace('m','')
+        badMem=float(badbMem) * 1000
         return badMem
     else:
         # Error???
