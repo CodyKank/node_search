@@ -938,7 +938,9 @@ def cleanMem(badMem):
         badMem = badMem.replace('t','') # removing the t from terabyte
         return (str(float(badMem)*1000) + ' GB')
     elif 'g' in badMem:
-        return badMem.replace('g', 'GB')
+        return badMem.replace('g', ' GB')
+    elif 'm' in badMem:
+        return badMem.replace('m', 'MB')
     else:
         # The true usage must be in KB, so add that
         return badMem + ' KB'
