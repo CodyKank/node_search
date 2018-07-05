@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pwd import getpwnam
-import sys, subprocess, urllib.request
+import sys, subprocess, urllib.request, os
 
 #Globals
 TERMWIDTH = 80
@@ -339,9 +339,17 @@ def main():
             show_usage(20)
         elif len(sys.argv) == 4:
             if sys.argv[3] == '--details':
-                find_host_groups(sys.argv[2], True)
+                find_host_groups(sys.argv[2], True, False)
         else:
-            find_host_groups(sys.argv[2], False)
+            find_host_groups(sys.argv[2], False, False)
+    elif sys.argv[1] == '-qlong':
+        if (len(sys.argv)) != 2:
+            print("Error: Too many arguments!") 
+            show_usage(20)
+        else:
+            find_host_groups(os.environ['USER'], False, True)
+            
+        
     elif sys.argv[1] == '-U':
         if len(sys.argv) != 2:
             print("Error: Too many args, you can't use --details with -U!")
@@ -381,11 +389,12 @@ def main():
     sys.exit()
 #^----------------------------------------------------------------------------- main()   
  
-def find_host_groups(user_name, detail_switch):
+def find_host_groups(user_name, detail_switch, queue_switch):
     """Method to find the host groups that a given user belongs to. Username is passed in,
     and method will send needed info to the respective printing functions depending if it is
     a detailed print or not. Program exits after executing this method."""
     
+    # Ensure user is a crc user (check /etc/passwd)
     try:
         user_pwd = getpwnam(user_name)
     except KeyError:
@@ -401,7 +410,57 @@ def find_host_groups(user_name, detail_switch):
         if u_list.find(user_name) != (-1):
             user_list.append(ul)
             
-    sq = subprocess.getoutput("qconf -sq long")
+    #sq = subprocess.getoutput("qconf -sq long")
+    #
+    ##splicing the sq output up to the user_list point, we don't need the rest of the garbarge before that
+    #sq = sq[sq.find('user_lists') + 9 :sq.find('xuser')]
+    #sq = (((sq.replace('\n', '')).replace(' ', '')).replace('\\', '')).replace('],', '')
+    #host_user_list = []
+    #sq = sq.split('[')
+    #hostg_list = []
+    #for line in sq:
+    #    if line.find('@') != (-1):
+    #        #host-groups in sq output have '@', so that's what we're looking for
+    #        hostg_list.append(line)
+    #for line in hostg_list:
+    #    for ul in user_list:
+    #        if ul in line:
+    #            host_user_list.append(line.split('=')[0])
+
+    queue_list= []
+    if queue_switch:
+        queue_list = ['long']
+    else:
+        queue_list = ['long', 'hpc', 'gpu', 'gpu-debug']
+        
+    host_user_list = []
+
+    # Run through each queue
+    for searchQ in queue_list:
+        host_user_list = host_user_list + find_queue_usersets(searchQ, user_list)
+
+    # Everyone has access to general access, adding in case of queue_switch
+    host_user_list.append('@' + GENERAL_ACCESS_QUEUE_HOSTGROUP)
+
+    if queue_switch:
+        process_queue(host_user_list, user_name, user_list)
+
+    # Everyone has access to debug
+    host_user_list.append('@' + DEBUG_QUEUE_HOSTGROUP)
+    
+    if detail_switch:
+        print_duser_host(host_user_list, user_name, user_list)
+    else:
+        print_user_host(host_user_list, user_name, user_list)
+    sys.exit()
+#^----------------------------------------------------------------------------- find_host_groups(user_name)
+
+def find_queue_usersets(queue, user_list):
+    """Searches through a queue with 'qconf -sq' to find all usersets which are allowed on the hostgroups
+    that operate within the specified queue. Takes in the queue to be searched as a string. Returns a list
+    of hostgroups from the specified queue which the user belongs to."""
+
+    sq = subprocess.getoutput("qconf -sq {0}".format(queue))
     
     #splicing the sq output up to the user_list point, we don't need the rest of the garbarge before that
     sq = sq[sq.find('user_lists') + 9 :sq.find('xuser')]
@@ -417,16 +476,8 @@ def find_host_groups(user_name, detail_switch):
         for ul in user_list:
             if ul in line:
                 host_user_list.append(line.split('=')[0])
-    # Manually adding these, as they do not have user_lists associated with them (open to everyone) !!!
-    host_user_list.append('@' + DEBUG_QUEUE_HOSTGROUP)
-    host_user_list.append('@' + GENERAL_ACCESS_QUEUE_HOSTGROUP)
-    
-    if detail_switch:
-        print_duser_host(host_user_list, user_name, user_list)
-    else:
-        print_user_host(host_user_list, user_name, user_list)
-    sys.exit()
-#^----------------------------------------------------------------------------- find_host_groups(user_name)
+    return host_user_list
+#^----------------------------------------------------------------------------- find_queue_usersets(user_name)
 
 def print_user_host(host_list, user, ul):
     """Method to print a non-detailed version of the host groups and user-lists a specifed user
@@ -481,6 +532,48 @@ def show_hosts():
         print(host)
     sys.exit()
 #^----------------------------------------------------------------------------- show_hosts()
+
+def process_queue(host_user_list, user_name, user_list):
+    """Process the long queue for the user who's environment this is running in. Accepts
+    the results from find_host_groups. Will run through process_host for every hostgroup
+    this user has access to through the long queue."""
+
+    total_nodes = 0
+    total_cores = 0
+    disabled_cores = 0
+    used_cores = 0
+    free_cores = 0
+    empty_nodes = 0
+    disabled_nodes = 0
+ 
+    node_strings= []
+
+    for hostgroup in host_user_list:
+        # Obtain totals for one hostgroup, and contine a summation
+        tc, uc, tn, en, dc,dn, nl = process_host(hostgroup.replace('@',''))
+
+        # Do not want to recount same nodes. This needs to be looked at for efficiency.
+        nl_strings = [n.name for n in nl]
+
+
+
+        if nl_strings[0] in node_strings:
+            continue
+
+        # Sum to get totals for whole queue which user has access to
+        total_cores += tc 
+        used_cores += uc 
+        total_nodes += tn
+        empty_nodes += en
+        disabled_cores += dc
+        disabled_nodes += dn
+        node_strings= node_strings + nl
+
+    # Send totals to be printed to screen
+    print_host_info(total_cores, used_cores, total_nodes, empty_nodes, "Long Queue", disabled_cores, 
+                    disabled_nodes)
+    sys.exit(0)
+#^----------------------------------------------------------------------------- process_queue(...)
 
 def process_host(desired_host):
     """Processes the desired host whether thats long or any host group. Will gather info on
@@ -539,6 +632,9 @@ def process_host(desired_host):
         else:
             print('Error: Arg syntax error with: ' + sys.argv[2])
             show_usage(23)
+    elif sys.argv[1] == "-qlong":
+        # Returning values from this host group to the qlong function
+        return(total_cores, used_cores, total_nodes, empty_nodes, disabled_cores,disabled_nodes, node_list)
     elif len(sys.argv) < 3:
         print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_host, disabled_cores, 
                         disabled_nodes)
@@ -567,6 +663,8 @@ def show_efficiency():
     lowEffNodes = []
     for node in qh.split('\n')[3:]: # Skipping lines that aren't nodes
         ns = node.split()
+        if len(ns) < 7:
+            continue # Skipping if it's a mistake
         if ns[6] != '-' and float(ns[6]) < LOWTHRESHOLD : # Not including machines that are turned off
             #lowUsageNodes.append({'NAME': ns[0], "LOAD": ns[6]}) #appending the string name of the nodes with low CPU usage
             for nd in qstat:
@@ -1028,12 +1126,13 @@ def show_usage(exit_code):
     print("  -h, --help".ljust(int(TERMWIDTH/2)) + "show this message and exit.".ljust(int(TERMWIDTH/2)))
     print("  -d, --debug".ljust(int(TERMWIDTH/2)) + "show information from the debug queue.".ljust(int(TERMWIDTH/2)))
     print("  -g, --general-access".ljust(int(TERMWIDTH/2)) + "show information from the general_access queue.".ljust(int(TERMWIDTH/2)))
-    print("  -H, --hosts".ljust(int(TERMWIDTH/2)) + "show all available hosts(you may not have access to all hosts)".ljust(int(TERMWIDTH/2)))
-    print("  -[hostname]".ljust(int(TERMWIDTH/2)) + "show information on specific host, the '@' is not required.".ljust(int(TERMWIDTH/2)))
+    print("  -H, --hosts".ljust(int(TERMWIDTH/2)) + "show all available host-groups(you may not have access to all)".ljust(int(TERMWIDTH/2)))
+    print("  -[hostgroup]".ljust(int(TERMWIDTH/2)) + "show information on specific host-group, the '@' is not required.".ljust(int(TERMWIDTH/2)))
     print("  -u, --user [user_name] ".ljust(int(TERMWIDTH/2)) + \
           "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
-    print("  -uf, [user_name]".ljust(int(TERMWIDTH/2)) + "show which host groups are available to specified user.".ljust(int(TERMWIDTH/2)))
+    print("  -uf, [user_name]".ljust(int(TERMWIDTH/2)) + "show which host-groups are available to specified user.".ljust(int(TERMWIDTH/2)))
     print("  -U".ljust(int(TERMWIDTH/2)) + "show a list of all users currently recognized by the Univa Grid Engine.".ljust(int(TERMWIDTH/2)))
+    print("  -qlong".ljust(int(TERMWIDTH/2)) + "display node and core usage of the long queue for the current user.".ljust(int(TERMWIDTH/2)))
     print("Optional arguments:".ljust(int(TERMWIDTH/2)))
     print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed to certain args for a detailed output.".ljust(int(TERMWIDTH/2)))
     print("  -v, --visual".ljust(int(TERMWIDTH/2)) + "flag which can be passed after a host name for a visual queue.".ljust(int(TERMWIDTH/2)) \
@@ -1041,10 +1140,10 @@ def show_usage(exit_code):
     print('Examples:')
     print('  {0} -d'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--debug] could also be used'.ljust(int(TERMWIDTH/2)))
     print('  {0} -g'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--general_access] could also be used'.ljust(int(TERMWIDTH/2)))
-    print('  {0} -g --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-g] could also be used'.ljust(int(TERMWIDTH/2)))
+    print('  {0} -g --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + ''.ljust(int(TERMWIDTH/2)))
     print('  {0} -u jdoe3 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.ljust(int(TERMWIDTH/2)))
     print('  {0} -uf jdoe3 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.ljust(int(TERMWIDTH/2)))
-    print('  {0} -corke'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)))
+    print('  {0} -hostname'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)))
     print('  {0} -g --visual'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-v] could also be used.'.ljust(int(TERMWIDTH/2)) + '\n')
     print("Hint: Sometimes it's better to pipe through less.")
     print("{0} [-flags] | less".format(SCRIPT_NAME).center(int(TERMWIDTH)))

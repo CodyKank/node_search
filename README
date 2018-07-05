@@ -43,7 +43,7 @@
   about the UGE environment, including information about nodes, users, user-lists, host-
   groups, and it can even give a visualization of a host-group.
 
-* This script is assuming (1) Python 3 is installed, tested with python 3.6.0 and 3.4.0,
+* This script is assuming (1) Python 3 is installed, tested with python 3.6.0 and 3.6.4,
   (2) the subprocess module is installed [should be by default], and (3) you
   have qconf, qstat, and xymon working and configured.
 

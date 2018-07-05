@@ -1,6 +1,6 @@
 .\" Manpage for node_search.py.
 .\" Contact ckankel@nd.edu to correct typos or errors.
-.TH man 1 "15 SEPT 2017" "1.1.0" "node_search man page"
+.TH man 1 "3 JULY 2018" "1.2.0" "node_search man page"
 .SH NAME
 node_search \- get node, user, or host-group information from Univa Grid Engine
 .SH SYNOPSIS
@@ -86,6 +86,13 @@ means those users: have jobs running somewhere controlled by the UGE, are waitin
 by the UGE, or recently interacted with the UGE in some way. Thus, not every user who has access to 
 the UGE will be displayed from this. Do not fret if your name is not on this list. 
 
+
+.TP
+\fB-qlong
+\fRThis unary flag will parse all nodes which the current user found by the environment's \fB$USER\fR.
+All nodes within hostgroups of the long queue which the user has access to will be displayed including
+the total core count, the used core count, free core count, disabled core count, total nodes, used nodes,
+free nodes, and error/disabled node count.
 .SH OPTIONAL FLAGS
 
 .TP
