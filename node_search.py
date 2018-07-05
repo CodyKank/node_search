@@ -806,7 +806,8 @@ def print_detailed_host(total_cores, used_cores, total_nodes, empty_nodes, desir
     print('\nDetailed info pertaining to: ' + desired_host)
     print('Total Nodes: {0}'.format(str(len(node_list)))) 
     print('Total Cores : {0}'.format(total_cores) + PRINT_INDENT + 'Used Cores: {0}'.format(used_cores)
-          + PRINT_INDENT + 'Free Cores: {0}'.format(str(total_cores - used_cores)) )
+          + PRINT_INDENT + 'Free Cores: {0}'.format(str(total_cores - used_cores - disabled_cores)) 
+          + PRINT_INDENT + 'Disabled Cores: {0}'.format(disabled_cores))
     print('\nThe following is a list of each node within {0}:\n'.format(desired_host))
     print('Node name'.ljust(int(TERMWIDTH/2)) + 'Used Cores/Total Cores')
     for node in node_list:
