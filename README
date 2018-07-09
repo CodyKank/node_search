@@ -32,8 +32,9 @@
   pain to have to load the python 3 module everytime you wanted check the 
   status of a job, so this bash script sets up the environment temporarily
   to run Python 3 scripts. The only configuration needed with this is to
-  properly specifiy the full path for the actual python 3 script and to edit the
-  paths for the useful module information to properly grab a version of Python 3.
+  properly specifiy the full path for the actual python 3 script. Occasionally,
+  the python3 module which is loaded will also have to be updated depending on
+  when a module is deprecated. 
 
 * node_search was developed for a specific environment. If you are attempting to 
   use it for your own organization, there may be a few hiccups. In theory, as long

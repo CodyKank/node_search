@@ -8,9 +8,12 @@
 # line 11 must be changed to load a correct version of python. As of July 5, 2018 python/3.6.4
 # is the latest version of python.
 
-source /opt/crc/Modules/current/init/bash
 
-module load python/3.6.4
+path_to_python3=$(which python3 2>/dev/null)
+if [ ! -x "$path_to_python3" ] ; then
+    source /opt/crc/Modules/current/init/bash
+    module load python/3.6.4
+fi
 
 
 # Calling the node_search.py script. All arugments will be passed into node_search
