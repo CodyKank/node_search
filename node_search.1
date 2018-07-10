@@ -1,6 +1,6 @@
 .\" Manpage for node_search.py.
 .\" Contact ckankel@nd.edu to correct typos or errors.
-.TH man 1 "3 JULY 2018" "1.2.0" "node_search man page"
+.TH man 1 "9 JULY 2018" "1.2.2" "node_search man page"
 .SH NAME
 node_search \- get node, user, or host-group information from Univa Grid Engine
 .SH SYNOPSIS
@@ -33,9 +33,13 @@ used cores) and node usage (free nodes, disabled nodes, used nodes). This option
 ." Next Option . . .
 .TP
 \fB-g\fR, \fB--general_access
-\fRDisplay information pertaining to the Long(General Access) queue such as core usage (free cores, 
+\fRDisplay information pertaining to the General Access hostgroup such as core usage (free cores, 
 disabled cores, used cores) and node usage (free nodes, disabled nodes, used nodes). This option 
-allows the optional \fB--details \fRflag or it can take the \fB-v\fR/\fB--visual\fR flag.
+allows the optional \fB--details \fRflag or it can take the \fB-v\fR/\fB--visual\fR flag. The general
+access hostgroup makes up the core of the long queue, every user can submit jobs to the general access
+hostgroup. Keep in mind that while submitting jobs to the long queue (\fB#$ -q long\fR) faculty owned
+hostgroups which a user has access to will be targeted first. To find which hostgroups a user has access
+to see \fB-uf\fR.
 
 ." Next Option . . .
 .TP
@@ -67,7 +71,7 @@ user after \fB-u \fRor \fB--user\fR. The maximum Memory used detected by the gri
 be shown. This option will take the optional flag \fB-details\fR for a more detailed output. The 
 detailed output will display all of the jobs running on the nodes that the specified user has jobs 
 running on. Since our nodes are a shared resource, it may be useful to see this if a job is running 
-poorly.
+poorly. \fBNOTE:\fR jobs running on GPUs will not have the GPU memory accessed.
 
 ." Next Option . . .
 .TP
@@ -99,7 +103,7 @@ free nodes, and error/disabled node count.
 \fB-v\fR, \fB--visual
 \fRDisplay a visual representation of a queue. In this visual representation, \fB[0]\fR represents 
 an open core, \fB[#]\fR represents a disabled core, and \fB[~]\fR represents a used or taken core. 
-This flag can be passed in after using \fBnode_search.py -d, -g, \fRor \fB-[hostname]\fR. See 
+This flag can be passed in after using \fBnodeSearch -d, -g, \fRor \fB-[hostname]\fR. See 
 Examples below.
 
 ." Next Option . . .
@@ -121,33 +125,37 @@ by UGE.  If the user has any pending jobs then those will be shown as well. If \
 .SH EXAMPLES
 
 .TP
-\fBnode_search.py -g
-\fRDisplay information pertaining to the long queue (general access)
+\fBnodeSearch -g
+\fRDisplay information pertaining to the long queue (general access host-group only)
 
 .TP
-\fBnode_search.py --debug --details
+\fBnodeSearch --debug --details
 \fRDisplay detailed information pertaining to the debug queue, this will yield information such as 
 the name of all of the nodes currently occupying the debug queue and their core information.
 
 .TP
-\fBnode_search.py -general_access -v
+\fBnodeSearch -general_access -v
 \fRDisplay a visual representation of the host-group '@general_access'. Notice how the '@' is not 
 needed for the host-group.
 
 .TP
-\fBnode_search.py -uf JohnDoe33 --details
+\fBnodeSearch -uf JohnDoe33 --details
 \fRDisplay a detailed view of the host-groups that user JohnDoe33 belongs to. This will show each 
 and every node that also belongs to those host-groups. It may be wise to pipe this output through 
-something along the lines of less/more. e.g. node_search.py -uf JohnDoe33 --details | less
+something along the lines of less/more. e.g. nodeSearch -uf JohnDoe33 --details | less
 
 .TP
-\fBnode_search.py -u JohnDoe
+\fBnodeSearch -u JohnDoe
 \fRDisplay the user JohnDoe and their jobs along with core usage and the nodes the jobs are running
 on. Will display total memory usage per node as used by user JohnDoe.
+
+.TP
+\fBnodeSearch -crc_d12chas
+\fRDisplay usage statistics for the hostgroup @crc_d12chas.
 
  
 .SH BUGS
 \fRNo known bugs at the current moment in time.
-Report any new findings to ckankel@nd.edu.
+Report any new findings on github: https://github.com/CodyKank/node_search
 .SH AUTHOR
 \fRCody Kankel (ckankel@nd.edu)
