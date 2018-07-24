@@ -349,6 +349,12 @@ def main():
         else:
             find_host_groups(os.environ['USER'], False, True)
             
+    elif sys.argv[1] == '-j':
+        if (len(sys.argv)) > 4 or (len(sys.argv)) < 3:
+            print("Error: Incorrect argument number.")
+            show_usage(20)
+        else:
+           process_id(sys.argv[2]) 
         
     elif sys.argv[1] == '-U':
         if len(sys.argv) != 2:
@@ -455,6 +461,13 @@ def find_host_groups(user_name, detail_switch, queue_switch):
     sys.exit()
 #^----------------------------------------------------------------------------- find_host_groups(user_name)
 
+def process_id(job_id):
+    """Accepts the job id to search for. Parses qstat to find the job associated with the job_id.
+    Will parse both qstat's -j flag and searches for the job on xymon. Passes on necessary information
+    to print_id function."""
+
+
+
 def find_queue_usersets(queue, user_list):
     """Searches through a queue with 'qconf -sq' to find all usersets which are allowed on the hostgroups
     that operate within the specified queue. Takes in the queue to be searched as a string. Returns a list
@@ -555,8 +568,6 @@ def process_queue(host_user_list, user_name, user_list):
         # Do not want to recount same nodes. This needs to be looked at for efficiency.
         nl_strings = [n.name for n in nl]
 
-
-
         if nl_strings[0] in node_strings:
             continue
 
@@ -606,7 +617,8 @@ def process_host(desired_host):
         host_used_cores = cores[1]
         host_total_cores = cores[2]
         if len(host.split()) == 6 and (host.split()[5] == 'd' or host.split()[5] == 'E' or \
-               host.split()[5] == 'au' or host.split()[5] == 'Eau' or host.split()[5] == 'Eqw'):
+               host.split()[5] == 'au' or host.split()[5] == 'Eau' or host.split()[5] == 'Eqw' \
+               or host.split()[5] == 'adu'):
             temp_node.set_disabled_switch(True)
             disabled_cores += int(host_total_cores)
             total_cores += int(host_total_cores)
@@ -1144,7 +1156,7 @@ def show_usage(exit_code):
     print('  {0} -g --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + ''.ljust(int(TERMWIDTH/2)))
     print('  {0} -u jdoe3 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.ljust(int(TERMWIDTH/2)))
     print('  {0} -uf jdoe3 --details'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[--details] is optional'.ljust(int(TERMWIDTH/2)))
-    print('  {0} -hostname'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)))
+    print('  {0} -hostgroup'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)))
     print('  {0} -g --visual'.format(SCRIPT_NAME).ljust(int(TERMWIDTH/2)) + '[-v] could also be used.'.ljust(int(TERMWIDTH/2)) + '\n')
     print("Hint: Sometimes it's better to pipe through less.")
     print("{0} [-flags] | less".format(SCRIPT_NAME).center(int(TERMWIDTH)))
