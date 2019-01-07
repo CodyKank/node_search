@@ -980,18 +980,20 @@ def print_detailed_user(node_list, pending_list, user_name, user_jobs, num_cores
         userNodeMem = [] # List to hold the different amounts of memory a user is using on this node!
         for line in pageStr.split('\n'):
             if user_name in line:
+                lineSplit = line.split()
+                memCheck = lineSplit[5] # used to check quality of memory string (check for m's, t's, or g's)
                 tmp_user_list = {}
                 lineSplit = line.split()
                 tmp_user_list["PID"] = lineSplit[0]
-                tmp_user_list["RESMEM"] = cleanMem(lineSplit[5])
+                tmp_user_list["RESMEM"] = cleanMem(memCheck)
                 tmp_user_list["CPU%"] = lineSplit[8]
                 tmp_user_list["TIME"] = lineSplit[10]
                 tmp_user_list["PNAME"] = lineSplit[11]
                 user_proc_list.append(tmp_user_list)
-                if ('t' in lineSplit[5])  or ('g' in lineSplit[5]): # this is what contains the amount of resident memory
-                    userNodeMem.append(toKB(lineSplit[5]))
+                if ('t' in memCheck)  or ('g' in memCheck) or ('m' in memCheck): # this is what contains the amount of resident memory
+                    userNodeMem.append(toKB(memCheck))
                 else:
-                    userNodeMem.append(lineSplit[5]) # we want it in KB to add up after finished running through node
+                    userNodeMem.append(memCheck) # we want it in KB to add up after finished running through node
 
 
         # Printing process information that pertains to the current user only.
@@ -1032,7 +1034,7 @@ def toKB(badMem):
         return badMem
     elif 'm' in badMem:
         badMem = badMem.replace('m','')
-        badMem=float(badbMem) * 1000
+        badMem=float(badMem) * 1000
         return badMem
     else:
         # Error???
@@ -1045,8 +1047,10 @@ def cleanMem(badMem):
     These will be transformed into human readable memory units like MB and GB to easily understand them. Returns:
     a string which holds the human readable memory amount."""
 
-    if len(badMem) > 3 and len(badMem) <= 6 and ('t' not in badMem) and ('g' not in badMem):
+    if len(badMem) > 3 and len(badMem) <= 6 and ('t' not in badMem) and ('g' not in badMem) and ('m' not in badMem):
         return (str( float(badMem) / 1000.0) + ' MB') # Moving decimal point over 3 times and adding MB
+    elif 'm' in badMem:
+        return badMem.replace('m', ' MB')
     elif len(badMem) > 6 and ('t' not in badMem ) and ('g' not in badMem):
         return (str( float(badMem) /1000000.0) + ' GB')
     elif 't' in badMem:
@@ -1054,8 +1058,6 @@ def cleanMem(badMem):
         return (str(float(badMem)*1000) + ' GB')
     elif 'g' in badMem:
         return badMem.replace('g', ' GB')
-    elif 'm' in badMem:
-        return badMem.replace('m', 'MB')
     else:
         # The true usage must be in KB, so add that
         return badMem + ' KB'
@@ -1092,10 +1094,11 @@ def print_short_user(node_list, pending_list, user_name, user_jobs, num_cores):
         for line in pageStr.split('\n'):
             if user_name in line:
                 lineSplit = line.split()
-                if ('t' in lineSplit[5])  or ('g' in lineSplit[5]): # this is what contains the amount of resident memory
-                    userNodeMem.append(toKB(lineSplit[5]))
+                memCheck = lineSplit[5]
+                if ('t' in memCheck)  or ('g' in memCheck) or ('m' in memCheck): # this is what contains the amount of resident memory
+                    userNodeMem.append(toKB(memCheck))
                 else:
-                    userNodeMem.append(lineSplit[5]) # we want it in KB to add up after finished running through node
+                    userNodeMem.append(memCheck) # we want it in KB to add up after finished running through node
 
         print(node.get_name().ljust(int(TERMWIDTH/2)) + ('Core Usage: ' + (str(node.get_used())) + '/' + (str(node.get_total()))).rjust(int(TERMWIDTH/2)))
         print('-'.center(int(TERMWIDTH) -1, '-')) #Creating line of separation

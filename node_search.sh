@@ -9,12 +9,7 @@
 # is the latest version of python.
 
 
-path_to_python3=$(which python3 2>/dev/null)
-if [ ! -x "$path_to_python3" ] ; then
-    source /opt/crc/Modules/current/init/bash
-    module load python/3.6.4
-fi
-
+module load python/3.6.4 &>/dev/null
 
 # Calling the node_search.py script. All arugments will be passed into node_search
 # The following needs to be the absolute path to node_search.py
