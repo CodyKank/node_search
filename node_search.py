@@ -303,7 +303,6 @@ class Pending(Job):
         return self.date
 #^--------------------------------------------------------- class Pending(Job)
 
-
 def main():
     """Main will parse through cmdline args, and give the result to the proper function. The debug
     queue is very simple to do on its own so it has its own function."""
@@ -465,8 +464,7 @@ def process_id(job_id):
     """Accepts the job id to search for. Parses qstat to find the job associated with the job_id.
     Will parse both qstat's -j flag and searches for the job on xymon. Passes on necessary information
     to print_id function."""
-
-
+    pass # Not implemented yet
 
 def find_queue_usersets(queue, user_list):
     """Searches through a queue with 'qconf -sq' to find all usersets which are allowed on the hostgroups
@@ -539,7 +537,7 @@ def print_duser_host(host_list, user, ul):
 #^----------------------------------------------------------------------------- print_duser_host(host_list, user, ul)
    
 def show_hosts():
-    """Function that displays all available hosts and exists. Best to be piped through less etc."""
+    """Function that displays all available hosts and exists. Best to be piped through a pager."""
     valid_hosts = (subprocess.getoutput("qconf -shgrpl").split())
     for host in valid_hosts:
         print(host)
@@ -1176,7 +1174,6 @@ def show_everything():
     print("This feature is still under construction. Check back soon!")
     sys.exit(0)
 #^----------------------------------------------------------------------------- show_everything()    
-    
 
 # Standard boilerplate to call the main() function.
 if __name__ == '__main__':
