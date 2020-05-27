@@ -415,23 +415,6 @@ def find_host_groups(user_name, detail_switch, queue_switch):
         if u_list.find(user_name) != (-1):
             user_list.append(ul)
             
-    #sq = subprocess.getoutput("qconf -sq long")
-    #
-    ##splicing the sq output up to the user_list point, we don't need the rest of the garbarge before that
-    #sq = sq[sq.find('user_lists') + 9 :sq.find('xuser')]
-    #sq = (((sq.replace('\n', '')).replace(' ', '')).replace('\\', '')).replace('],', '')
-    #host_user_list = []
-    #sq = sq.split('[')
-    #hostg_list = []
-    #for line in sq:
-    #    if line.find('@') != (-1):
-    #        #host-groups in sq output have '@', so that's what we're looking for
-    #        hostg_list.append(line)
-    #for line in hostg_list:
-    #    for ul in user_list:
-    #        if ul in line:
-    #            host_user_list.append(line.split('=')[0])
-
     queue_list= []
     if queue_switch:
         queue_list = ['long']
