@@ -355,12 +355,6 @@ def main():
         else:
            process_id(sys.argv[2]) 
         
-    elif sys.argv[1] == '-U':
-        if len(sys.argv) != 2:
-            print("Error: Too many args, you can't use --details with -U!")
-            show_usage(20)
-        else:   
-            show_users()
     elif sys.argv[1] == '--low_efficiency' or sys.argv[1] == '-l_e':
         if len(sys.argv) > 2:
             print('Error: Too many args.')
@@ -832,14 +826,6 @@ def print_host_info(total_cores, used_cores, total_nodes, empty_nodes, desired_h
     return
 #^----------------------------------------------------------------------------- print_host_info(. . .)
 
-def show_users():
-    """Will display users currently detected by the Univa Grid Engine (qconf)"""
-    user_list = subprocess.getoutput("qconf -suserl").split('\n')
-    for user in user_list:
-        print(user)
-    sys.exit()
-#^----------------------------------------------------------------------------- show_users()
-
 def process_user(user_name):
     """Function to process the username given after -u option. Will find information pertaining to the specified
     user and send them to the printing function."""
@@ -1128,7 +1114,6 @@ def show_usage(exit_code):
     print("  -u, --user [user_name] ".ljust(int(TERMWIDTH/2)) + \
           "show which nodes the specified user's jobs are on and job info.".ljust(int(TERMWIDTH/2)))
     print("  -uf, [user_name]".ljust(int(TERMWIDTH/2)) + "show which host-groups are available to specified user.".ljust(int(TERMWIDTH/2)))
-    print("  -U".ljust(int(TERMWIDTH/2)) + "show a list of all users currently recognized by the Univa Grid Engine.".ljust(int(TERMWIDTH/2)))
     print("  -qlong".ljust(int(TERMWIDTH/2)) + "display node and core usage of the long queue for the current user.".ljust(int(TERMWIDTH/2)))
     print("Optional arguments:".ljust(int(TERMWIDTH/2)))
     print("  --details".ljust(int(TERMWIDTH/2)) + "flag which can be passed to certain args for a detailed output.".ljust(int(TERMWIDTH/2)))
